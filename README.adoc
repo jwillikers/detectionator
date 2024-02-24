@@ -1,0 +1,277 @@
+= Detectionator
+Jordan Williams <jordan@jwillikers.com>
+:experimental:
+:icons: font
+:keywords: camera detect detection object opencv photo pi picamera picamera2 python raspberry tensorflow
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+:AutoUpload: https://github.com/jwillikers/autoupload[AutoUpload]
+:Exif: https://en.wikipedia.org/wiki/Exif[Exif]
+:Immich: https://immich.app/[Immich]
+:Immich-CLI: https://immich.app/docs/features/command-line-interface/[Immich CLI]
+:MinIO: https://min.io/[MinIO]
+:picamera2: https://github.com/raspberrypi/picamera2[picamera2]
+:pip-tools: https://github.com/jazzband/pip-tools[pip-tools]
+:pySerial: https://github.com/pyserial/pyserial[pySerial]
+:Rclone: https://rclone.org/[Rclone]
+:systemd: https://systemd.io/[systemd]
+
+A Raspberry Pi camera for taking pictures using object detection.
+
+== Overview
+
+The Detectionator is a fairly minimal Raspberry Pi camera build for taking pictures of particular objects like animals or people.
+The Detectionator incorporates {Exif} geolocation metadata in the photographs it takes.
+With the help of my {AutoUpload} project, pictures are automatically offloaded from the local storage to cloud-based storage such as S3-compatible object storage with {Rclone} or to {Immich} with the {Immich-CLI}.
+The photos are then removed from local storage.
+This repository contains documentation, configuration files, and the Python program for the Detectionator.
+The project is largely based off of the tensorflow example in the {picamera2} project and includes the same models.
+
+== Components
+
+The Detectionator is based off of the Raspberry Pi 5 and the Camera Module 3.
+It incorporates a GPS to obtain the geolocation data to embed in the photographs.
+
+.Detectionator Components
+* https://www.raspberrypi.com/products/raspberry-pi-5-model-b/[Raspberry Pi 5 Model B] (4 GB RAM or better)
+* https://www.raspberrypi.com/products/camera-module-3/[Raspberry Pi Camera Module 3]
+* https://www.adafruit.com/product/1646[100mm Flex Cable for Raspberry Pi Camera]
+* https://www.arducam.com/product/white-camera-enclosure-case-pi-cameras/[Camera Enclosure Case for Raspberry Pi Camera Module 3/V1/V2 and Arducam 16MP/64MP Camera]
+// todo I might switch to the HAT and use gpsd instead: https://www.adafruit.com/product/2324
+* https://www.adafruit.com/product/4279[Adafruit Ultimate GPS GNSS with USB - 99 channel w/10 Hz updates]
+* A sufficiently large and performant microSD card.
+The https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-ultimate-adapter-microsdxc-128gb-mb-my128sa-am/[128GB Samsung Pro Ultimate] and https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-endurance-adapter-microsdxc-128gb-mb-mj128ka-am/[128GB Samsung Pro Endurance] are two good options.
+* A USB-C to USB-A cable to connect the Adafruit Ultimate GPS with USB to the Pi.
+* A USB-C power supply for powering the Pi.
+* A fan or case with a fan to keep the Raspberry Pi 5 cool.
+
+== Install
+
+. Install the 64-bit full version of https://www.raspberrypi.com/software/[Raspberry Pi OS] to a microSD card.
+The configuration files assume the primary user is `core`, which can be configured when using Raspberry Pi Imager to write the image.
+This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
+. Insert the microSD card into the Raspberry Pi.
+. Boot the Raspberry Pi.
+. Follow the instructions to configure the storage service and autoupload systemd units in the {AutoUpload} README.
+This will automatically upload photos in the `~/Pictures` directory.
+The commands to enable the units should look similar to the following.
+These use the _system_ units, though _user_ units work just as well.
++
+Immich::
++
+[,sh]
+----
+sudo systemctl enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).path
+----
+
+Rclone::
++
+[,sh]
+----
+sudo systemctl enable --now autoupload-rclone@$(systemd-escape --path ~/Pictures).path
+----
+
+. For security, be sure to disable password-based SSH authentication.
+After your public key has been added to the `~/.ssh/authorized_keys` file on the Pi Camera, this can be configured in the `/etc/ssh/sshd_config` file.
+You can follow the instructions in my https://github.com/jwillikers/openssh-config[OpenSSH Config] repository to accomplish this and a few other optimizations.
+
+. Make the `~/Projects` directory.
++
+[,sh]
+----
+mkdir --parents ~/Projects
+----
+
+. Clone this project's repository to the `~/Projects` directory.
++
+[,sh]
+----
+git -C ~/Projects clone https://github.com/jwillikers/detectionator.git
+----
+
+. Change to the project's directory.
++
+[,sh]
+----
+cd ~/Projects/detectionator
+----
+
+. Update the package lists.
++
+[,sh]
+----
+sudo apt-get update
+----
+
+. Upgrade everything.
++
+[,sh]
+----
+sudo apt-get --yes full-upgrade
+----
+
+. Install the necessary and unnecessary packages.
+I like fish, tmux, and vim, what can I say?
++
+[,sh]
+----
+sudo apt-get --yes install build-essential firewalld fish git libatlas-base-dev python3-dev python3-picamera2 python3-venv tmux vim
+----
+
+. Create a virtual environment for the project.
++
+[,sh]
+----
+python -m venv --system-site-packages venv
+----
+
+. Activate the virtual environment.
++
+[,sh]
+----
+source venv/bin/activate.fish
+----
+
+. Install the dependencies in the venv.
++
+[,sh]
+----
+python -m pip install --requirement requirements.txt
+----
+
+. Test the `detection.py` script.
++
+[,sh]
+----
+python detectionator.py \
+    --model models/mobilenet_v2.tflite \
+    --label models/coco_labels.txt \
+    --output ~/Pictures
+----
+
+. Exit the virtual environment.
++
+[,sh]
+----
+exit
+----
+
+. Create the systemd directory for user units.
++
+[,sh]
+----
+mkdir --parents ~/.config/systemd/user
+----
+
+. Symlink the systemd unit to the `~/.config/systemd/user/` directory.
++
+[,sh]
+----
+ln --force --relative --symbolic systemd/user/* ~/.config/systemd/user/
+----
+
+. Enable and start the `detectionator.service` systemd unit.
++
+[,sh]
+----
+systemctl --user enable --now detectionator.service
+----
+
+== Development
+
+It's recommended to use the provided {pre-commit} checks when developing.
+
+. Create a virtual environment if you haven't done so already.
++
+[,sh]
+----
+python -m venv --system-site-packages venv
+----
+
+. Activate the virtual environment.
++
+[,sh]
+----
+source venv/bin/activate.fish
+----
+
+. Install the development packages.
++
+[,sh]
+----
+python -m pip install -r requirements-dev.txt
+----
+
+. Install the packages.
+This project uses pip-tools to synchronize virtual environments for development.
+Sync your virtual environments packages with those pinned in the `requirements.txt` and `requirements-dev.txt` files with the `pip-sync` command.
++
+[,sh]
+----
+pip-sync requirements-dev.txt requirements.txt
+----
+
+. Install the Git hooks for pre-commit.
++
+[,sh]
+----
+pre-commit install
+----
+
+. Upgrade the packages pinned in the `requirements.txt` file with the `pip-compile` command.
++
+[,sh]
+----
+pip-compile \
+  --allow-unsafe \
+  --generate-hashes \
+  --reuse-hashes \
+  --upgrade \
+  requirements.in
+----
+
+. The pinned development packages in the `requirements-dev.txt` file can be upgraded in the same fashion.
++
+[,sh]
+----
+pip-compile \
+  --allow-unsafe \
+  --generate-hashes \
+  --reuse-hashes \
+  --upgrade \
+  requirements-dev.in
+----
+
+== todo
+
+* CI
+* mypy
+* Create a weatherproof enclosure for the camera.
+* Add a NixOS configuration and build SD card images.
+
+== See Also
+
+* https://docs.circuitpython.org/projects/gps/en/latest/[Adafruit GPS Library Documentation]
+* https://www.cipa.jp/std/documents/e/DC-008-2012_E.pdf[Exchangeable image file format for digital still cameras Exif Version 2.3]
+* https://pyserial.readthedocs.io/en/latest/index.html[pySerial Documentation]
+* https://www.raspberrypi.com/news/using-the-picamera2-library-with-tensorflow-lite/[Using the Picamera2 library with TensorFlow Lite]
+
+== Code of Conduct
+
+The project's Code of Conduct is available in the link:CODE_OF_CONDUCT.adoc[Code of Conduct] file.
+
+== License
+
+The models are from the {picamera2} project's TensorFlow example, and are likely subject to their own licenses.
+This repository is licensed under the https://www.gnu.org/licenses/gpl-3.0.html[GPLv3], available in the link:LICENSE.adoc[license file].
+
+© 2024 Jordan Williams
+
+== Authors
+
+mailto:{email}[{author}]

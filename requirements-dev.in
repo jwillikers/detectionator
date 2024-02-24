@@ -1,0 +1,5 @@
+-c requirements.txt
+black
+pip-tools
+pre-commit
+pylint

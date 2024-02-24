@@ -1,0 +1,19 @@
+[Unit]
+Description=The Detectionator for capturing photographs using object detection
+After=default.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 1
+ExecStart=%h/Projects/detectionator/venv/bin/python \
+    %h/Projects/detectionator/detectionator.py \
+    --label %h/Projects/detectionator/models/coco_labels.txt \
+    --match bird bear cat cow dog elephant giraffe horse sheep zebra \
+    --model %h/Projects/detectionator/models/mobilenet_v2.tflite \
+    --output %h/Pictures
+Restart=on-failure
+RestartSec=10
+KillMode=process
+
+[Install]
+WantedBy=default.target

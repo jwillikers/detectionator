@@ -1,0 +1,28 @@
+[project]
+name = "detectionator"
+version = "0.0.1"
+requires-python = ">=3.11"
+dynamic = ["dependencies", "dev-dependencies"]
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.in"] }
+dev-dependencies = { file = ["requirements-dev.in"] }
+
+[tool.pylint.messages_control]
+disable = [
+    "fixme",
+    "import-error",
+    "invalid-name",
+    "line-too-long",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "redefined-outer-name",
+]
+
+[tool.setuptools]
+py-modules = []
