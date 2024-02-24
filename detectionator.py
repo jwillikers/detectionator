@@ -159,6 +159,9 @@ def main():
         signal.signal(signal.SIGINT, signal_handler)
 
         while True:
+            # Take a quick breather to give the CPU a break.
+            time.sleep(0.1)
+
             buffer = picam2.capture_buffer("lores")
             grey = buffer[: stride * low_resolution_size[1]].reshape(
                 (low_resolution_size[1], stride)
