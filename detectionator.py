@@ -19,14 +19,15 @@ import tflite_runtime.interpreter as tflite
 # normal_size = (640, 480)
 # low_resolution_size = (320, 240)
 
-# Camera Module 3: 4608 x 2592 
+# Camera Module 3: 4608 x 2592
 normal_size = (4608, 2592)
 # low_resolution_size = (576, 324)
 # low_resolution_size = (1152, 648)
 low_resolution_size = (2304, 1296)
 
+
 def ReadLabelFile(file_path):
-    with open(file_path, 'r') as f:
+    with open(file_path, "r", encoding="UTF-8") as f:
         lines = f.readlines()
     ret = {}
     for line in lines:
@@ -34,16 +35,17 @@ def ReadLabelFile(file_path):
         ret[int(pair[0])] = pair[1].strip()
     return ret
 
+
 def InferenceTensorFlow(image, model, labels, match_labels: list):
     interpreter = tflite.Interpreter(model_path=model, num_threads=4)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
+    height = input_details[0]["shape"][1]
+    width = input_details[0]["shape"][2]
     floating_model = False
-    if input_details[0]['dtype'] == np.float32:
+    if input_details[0]["dtype"] == np.float32:
         floating_model = True
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
@@ -54,13 +56,13 @@ def InferenceTensorFlow(image, model, labels, match_labels: list):
     if floating_model:
         input_data = (np.float32(input_data) - 127.5) / 127.5
 
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    interpreter.set_tensor(input_details[0]["index"], input_data)
 
     interpreter.invoke()
 
-    detected_classes = interpreter.get_tensor(output_details[1]['index'])
-    detected_scores = interpreter.get_tensor(output_details[2]['index'])
-    num_boxes = interpreter.get_tensor(output_details[3]['index'])
+    detected_classes = interpreter.get_tensor(output_details[1]["index"])
+    detected_scores = interpreter.get_tensor(output_details[2]["index"])
+    num_boxes = interpreter.get_tensor(output_details[3]["index"])
 
     matches = set()
     for i in range(int(num_boxes)):
@@ -70,23 +72,26 @@ def InferenceTensorFlow(image, model, labels, match_labels: list):
         score = detected_scores[0][i]
         if score > 0.5:
             if labels:
-                print(labels[classId], 'score = ', score)
+                print(labels[classId], "score = ", score)
             else:
-                print('score = ', score)
+                print("score = ", score)
             matches.add(labels[classId])
     return matches
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gap', help='The time to wait between pictures.', default=1)
-    parser.add_argument('--label', help='Path of the labels file.')
-    parser.add_argument('--match', help='The labels for which to capture photographs', nargs='*')
-    parser.add_argument('--model', help='Path of the detection model.', required=True)
-    parser.add_argument('--output', help='Directory path for the output images.')
+    parser.add_argument("--gap", help="The time to wait between pictures.", default=1)
+    parser.add_argument("--label", help="Path of the labels file.")
+    parser.add_argument(
+        "--match", help="The labels for which to capture photographs", nargs="*"
+    )
+    parser.add_argument("--model", help="Path of the detection model.", required=True)
+    parser.add_argument("--output", help="Directory path for the output images.")
     args = parser.parse_args()
 
     output_directory = os.path.join(os.getenv("HOME"), "Pictures")
-    if (args.output):
+    if args.output:
         output_directory = args.output
     if not os.path.isdir(output_directory):
         print(f"The output directory '{output_directory}' does not exist")
@@ -97,7 +102,7 @@ def main():
             pass
 
     label_file = None
-    if (args.label):
+    if args.label:
         label_file = args.label
 
     labels = None
@@ -105,14 +110,16 @@ def main():
         labels = ReadLabelFile(label_file)
 
     match = []
-    if (args.match):
+    if args.match:
         match = args.match
 
     if labels is not None:
         for m in match:
             if m not in labels.values():
-                print(f"The match '{m}' does not appear in the labels file {label_file}")
-                exit(1)
+                print(
+                    f"The match '{m}' does not appear in the labels file {label_file}"
+                )
+                sys.exit(1)
 
     print(f"Will take photographs of: {match}")
 
@@ -136,13 +143,16 @@ def main():
 
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 9
-        config = picam2.create_preview_configuration(main={"size": normal_size}, lores={"size": low_resolution_size, "format": "YUV420"})
+        config = picam2.create_preview_configuration(
+            main={"size": normal_size},
+            lores={"size": low_resolution_size, "format": "YUV420"},
+        )
         picam2.configure(config)
         stride = picam2.stream_configuration("lores")["stride"]
         picam2.start()
 
-        def signal_handler(sig, frame):
-            print('You pressed Ctrl+C!')
+        def signal_handler(_sig, _frame):
+            print("You pressed Ctrl+C!")
             picam2.stop()
             sys.exit(0)
 
@@ -150,7 +160,9 @@ def main():
 
         while True:
             buffer = picam2.capture_buffer("lores")
-            grey = buffer[:stride * low_resolution_size[1]].reshape((low_resolution_size[1], stride))
+            grey = buffer[: stride * low_resolution_size[1]].reshape(
+                (low_resolution_size[1], stride)
+            )
             matches = InferenceTensorFlow(grey, args.model, labels, match)
             if len(matches) == 0:
                 continue
@@ -160,37 +172,73 @@ def main():
             for _ in range(5):
                 if picam2.autofocus_cycle():
                     break
-            exif_dict={}
+            exif_dict = {}
             if gps.update() and gps.has_fix:
-                def decimal_minutes_to_minutes_seconds(minutes_decimal: float) -> tuple[int, Fraction]:
+
+                def decimal_minutes_to_minutes_seconds(
+                    minutes_decimal: float,
+                ) -> tuple[int, Fraction]:
                     minutes = int(minutes_decimal)
-                    seconds = Fraction((minutes_decimal - minutes) * 60).limit_denominator(100)
+                    seconds = Fraction(
+                        (minutes_decimal - minutes) * 60
+                    ).limit_denominator(100)
                     return (minutes, seconds)
 
-                latitude_minutes, latitude_seconds = decimal_minutes_to_minutes_seconds(gps.latitude_minutes)
-                longitude_minutes, longitude_seconds = decimal_minutes_to_minutes_seconds(gps.longitude_minutes)
-                
+                latitude_minutes, latitude_seconds = decimal_minutes_to_minutes_seconds(
+                    gps.latitude_minutes
+                )
+                longitude_minutes, longitude_seconds = (
+                    decimal_minutes_to_minutes_seconds(gps.longitude_minutes)
+                )
+
                 def format_fraction(fraction: Fraction) -> tuple[int, int]:
-                    return (int(fraction.limit_denominator(100).numerator), int(fraction.limit_denominator(100).denominator))
+                    return (
+                        int(fraction.limit_denominator(100).numerator),
+                        int(fraction.limit_denominator(100).denominator),
+                    )
 
                 gps_ifd = {
                     piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
-                    piexif.GPSIFD.GPSAltitude: format_fraction(Fraction(abs(0 if gps.altitude_m is None else gps.altitude_m)).limit_denominator(100)),
-                    piexif.GPSIFD.GPSAltitudeRef: (0 if gps.altitude_m is None or gps.altitude_m > 0 else 1),
-                    piexif.GPSIFD.GPSLatitude: ((abs(gps.latitude_degrees), 1), (latitude_minutes, 1), format_fraction(latitude_seconds)),
+                    piexif.GPSIFD.GPSAltitude: format_fraction(
+                        Fraction(
+                            abs(0 if gps.altitude_m is None else gps.altitude_m)
+                        ).limit_denominator(100)
+                    ),
+                    piexif.GPSIFD.GPSAltitudeRef: (
+                        0 if gps.altitude_m is None or gps.altitude_m > 0 else 1
+                    ),
+                    piexif.GPSIFD.GPSLatitude: (
+                        (abs(gps.latitude_degrees), 1),
+                        (latitude_minutes, 1),
+                        format_fraction(latitude_seconds),
+                    ),
                     piexif.GPSIFD.GPSLatitudeRef: "N" if gps.latitude > 0 else "S",
-                    piexif.GPSIFD.GPSLongitude: ((abs(gps.longitude_degrees), 1), (longitude_minutes, 1), format_fraction(longitude_seconds)),
+                    piexif.GPSIFD.GPSLongitude: (
+                        (abs(gps.longitude_degrees), 1),
+                        (longitude_minutes, 1),
+                        format_fraction(longitude_seconds),
+                    ),
                     piexif.GPSIFD.GPSLongitudeRef: "E" if gps.longitude > 0 else "W",
-                    piexif.GPSIFD.GPSProcessingMethod: "GPS".encode('ASCII'),
+                    piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
                     piexif.GPSIFD.GPSSatellites: str(gps.satellites),
-                    piexif.GPSIFD.GPSSpeed: (0, 1) if gps.speed_knots is None else format_fraction(Fraction(gps.speed_knots)),
+                    piexif.GPSIFD.GPSSpeed: (
+                        (0, 1)
+                        if gps.speed_knots is None
+                        else format_fraction(Fraction(gps.speed_knots))
+                    ),
                     piexif.GPSIFD.GPSSpeedRef: "N",
                 }
                 if gps.fix_quality_3d > 0:
                     gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(gps.fix_quality_3d)
                 if gps.timestamp_utc:
-                    gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime("%Y:%m:%d", gps.timestamp_utc)
-                    gps_ifd[piexif.GPSIFD.GPSTimeStamp] = ((gps.timestamp_utc.tm_hour, 1), (gps.timestamp_utc.tm_min, 1), (gps.timestamp_utc.tm_sec, 1))
+                    gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
+                        "%Y:%m:%d", gps.timestamp_utc
+                    )
+                    gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
+                        (gps.timestamp_utc.tm_hour, 1),
+                        (gps.timestamp_utc.tm_min, 1),
+                        (gps.timestamp_utc.tm_sec, 1),
+                    )
                 if gps.isactivedata:
                     gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata
                 exif_dict = {"GPS": gps_ifd}
@@ -200,10 +248,13 @@ def main():
             matches_name = "-".join(matches)
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
             capture_config = picam2.create_still_configuration()
-            picam2.switch_mode_and_capture_file(capture_config, filename, delay=10, exif_data=exif_dict, format='jpeg')
+            picam2.switch_mode_and_capture_file(
+                capture_config, filename, delay=10, exif_data=exif_dict, format="jpeg"
+            )
             print(f"Image captured: {filename}")
             frame += 1
             time.sleep(args.gap)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

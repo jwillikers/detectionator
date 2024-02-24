@@ -22,6 +22,9 @@ disable = [
     "missing-function-docstring",
     "missing-module-docstring",
     "redefined-outer-name",
+    "too-many-branches",
+    "too-many-locals",
+    "too-many-statements",
 ]
 
 [tool.setuptools]
