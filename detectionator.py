@@ -20,6 +20,7 @@ from exif_utils import (
 )
 
 
+# todo Figure out the best values for the normal and low resolution sizes.
 # normal_size = (640, 480)
 # low_resolution_size = (320, 240)
 
@@ -27,7 +28,7 @@ from exif_utils import (
 normal_size = (4608, 2592)
 # low_resolution_size = (576, 324)
 # low_resolution_size = (1152, 648)
-low_resolution_size = (2304, 1296)
+default_low_resolution_size = (2304, 1296)
 
 
 def ReadLabelFile(file_path):
@@ -93,6 +94,16 @@ def main():
     )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
+        "--low-resolution-width",
+        help="The width to use for the low resolution size.",
+        default=default_low_resolution_size[0],
+    )
+    parser.add_argument(
+        "--low-resolution-height",
+        help="The height to use for the low resolution size.",
+        default=default_low_resolution_size[1],
+    )
+    parser.add_argument(
         "--match", help="The labels for which to capture photographs", nargs="*"
     )
     parser.add_argument("--model", help="Path of the detection model.", required=True)
@@ -117,6 +128,15 @@ def main():
     labels = None
     if label_file:
         labels = ReadLabelFile(label_file)
+
+    if (
+        normal_size[0] / args.low_resolution_width
+        != normal_size[1] / args.low_resolution_height
+    ):
+        print(
+            f"The low resolution width, '{args.low_resolution_width}', and low resolution height, '{args.low_resolution_height}' must be a fraction of the normal size, '{normal_size[0]}x{normal_size[1]}'"
+        )
+        sys.exit(1)
 
     match = []
     if args.match:
@@ -154,8 +174,12 @@ def main():
         picam2.options["compress_level"] = 9
         config = picam2.create_preview_configuration(
             main={"size": normal_size},
-            lores={"size": low_resolution_size, "format": "YUV420"},
+            lores={
+                "size": (args.low_resolution_width, args.low_resolution_height),
+                "format": "YUV420",
+            },
         )
+        picam2.align_configuration(config)
         picam2.configure(config)
         stride = picam2.stream_configuration("lores")["stride"]
         picam2.start()
@@ -172,8 +196,8 @@ def main():
             time.sleep(0.1)
 
             buffer = picam2.capture_buffer("lores")
-            grey = buffer[: stride * low_resolution_size[1]].reshape(
-                (low_resolution_size[1], stride)
+            grey = buffer[: stride * args.low_resolution_height].reshape(
+                (args.low_resolution_height, stride)
             )
             matches = InferenceTensorFlow(grey, args.model, labels, match)
             if len(matches) == 0:
