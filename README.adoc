@@ -130,6 +130,13 @@ cd ~/Projects/detectionator
 sudo cp etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules /etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules
 ----
 
+. Reboot for the change to take effect.
++
+[,sh]
+----
+sudo systemctl reboot
+----
+
 . Connect the Adafruit Ultimate GPS to the Raspberry Pi.
 
 . Create a virtual environment for the project.
