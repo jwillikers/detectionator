@@ -53,9 +53,7 @@ def InferenceTensorFlow(image, model, labels, match_labels: list):
     if input_details[0]["dtype"] == np.float32:
         floating_model = True
 
-    rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-
-    picture = cv2.resize(rgb, (width, height))
+    picture = cv2.resize(image, (width, height))
 
     input_data = np.expand_dims(picture, axis=0)
     if floating_model:
@@ -172,16 +170,18 @@ def main():
 
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 9
-        config = picam2.create_preview_configuration(
+        config = picam2.create_still_configuration(
             main={"size": normal_size},
             lores={
                 "size": (args.low_resolution_width, args.low_resolution_height),
-                "format": "YUV420",
+                # Only Pi 5 and newer can use formats besides YUV here.
+                # This avoids having to convert the image format for OpenCV later.
+                "format": "RGB888",
             },
+            # Don't display anything in the preview window since the system is running headless.
+            display=None,
         )
-        picam2.align_configuration(config)
         picam2.configure(config)
-        stride = picam2.stream_configuration("lores")["stride"]
         picam2.start()
 
         def signal_handler(_sig, _frame):
@@ -195,11 +195,8 @@ def main():
             # Take a quick breather to give the CPU a break.
             time.sleep(0.1)
 
-            buffer = picam2.capture_buffer("lores")
-            grey = buffer[: stride * args.low_resolution_height].reshape(
-                (args.low_resolution_height, stride)
-            )
-            matches = InferenceTensorFlow(grey, args.model, labels, match)
+            image = picam2.capture_array("lores")
+            matches = InferenceTensorFlow(image, args.model, labels, match)
             if len(matches) == 0:
                 continue
             gps.update()
@@ -262,10 +259,7 @@ def main():
                 print("No GPS fix")
             matches_name = "-".join(matches)
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
-            capture_config = picam2.create_still_configuration()
-            picam2.switch_mode_and_capture_file(
-                capture_config, filename, delay=10, exif_data=exif_dict, format="jpeg"
-            )
+            picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
             print(f"Image captured: {filename}")
             frame += 1
             time.sleep(args.gap)
