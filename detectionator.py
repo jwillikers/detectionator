@@ -84,7 +84,7 @@ def InferenceTensorFlow(image, model, labels, match_labels: list):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gap", help="The time to wait between pictures.", default=1)
+    parser.add_argument("--gap", help="The time to wait between pictures.", default=0.5)
     parser.add_argument(
         "--gps-serial-port",
         help="The device path for the GPS serial device.",
@@ -163,25 +163,26 @@ def main():
 
     frame = int(time.time())
     with Picamera2() as picam2:
-        # Enable autofocus.
-        # if "AfMode" in picam2.camera_controls:
-        picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
-        time.sleep(1)
 
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 9
         config = picam2.create_still_configuration(
             main={"size": normal_size},
             lores={
-                "size": (args.low_resolution_width, args.low_resolution_height),
                 # Only Pi 5 and newer can use formats besides YUV here.
                 # This avoids having to convert the image format for OpenCV later.
                 "format": "RGB888",
+                "size": (args.low_resolution_width, args.low_resolution_height),
             },
+            buffer_count=4,
             # Don't display anything in the preview window since the system is running headless.
             display=None,
         )
         picam2.configure(config)
+        # Enable autofocus.
+        if "AfMode" in picam2.camera_controls:
+            picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
+        time.sleep(1)
         picam2.start()
 
         def signal_handler(_sig, _frame):
@@ -201,10 +202,10 @@ def main():
                 continue
             gps.update()
             # Autofocus
-            # if 'AfMode' in picam2.camera_controls:
-            for _ in range(5):
-                if picam2.autofocus_cycle():
-                    break
+            if "AfMode" in picam2.camera_controls:
+                for _ in range(5):
+                    if picam2.autofocus_cycle():
+                        break
             exif_dict = {}
             if gps.update() and gps.has_fix:
 
