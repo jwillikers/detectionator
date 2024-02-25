@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-from fractions import Fraction
 import os
 import signal
 import sys
@@ -14,6 +13,11 @@ from picamera2 import Picamera2
 import piexif
 import serial
 import tflite_runtime.interpreter as tflite
+
+from exif_utils import (
+    degrees_decimal_to_degrees_minutes_seconds,
+    number_to_exif_rational,
+)
 
 
 # normal_size = (640, 480)
@@ -178,58 +182,37 @@ def main():
             exif_dict = {}
             if gps.update() and gps.has_fix:
 
-                def decimal_minutes_to_minutes_seconds(
-                    minutes_decimal: float,
-                ) -> tuple[int, Fraction]:
-                    minutes = int(minutes_decimal)
-                    seconds = Fraction(
-                        (minutes_decimal - minutes) * 60
-                    ).limit_denominator(100)
-                    return (minutes, seconds)
-
-                latitude_minutes, latitude_seconds = decimal_minutes_to_minutes_seconds(
-                    gps.latitude_minutes
-                )
-                longitude_minutes, longitude_seconds = (
-                    decimal_minutes_to_minutes_seconds(gps.longitude_minutes)
-                )
-
-                def format_fraction(fraction: Fraction) -> tuple[int, int]:
-                    return (
-                        int(fraction.limit_denominator(100).numerator),
-                        int(fraction.limit_denominator(100).denominator),
-                    )
+                latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
+                longitude = degrees_decimal_to_degrees_minutes_seconds(gps.longitude)
 
                 gps_ifd = {
-                    piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
-                    piexif.GPSIFD.GPSAltitude: format_fraction(
-                        Fraction(
-                            abs(0 if gps.altitude_m is None else gps.altitude_m)
-                        ).limit_denominator(100)
+                    piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
+                        abs(0 if gps.altitude_m is None else gps.altitude_m)
                     ),
                     piexif.GPSIFD.GPSAltitudeRef: (
                         0 if gps.altitude_m is None or gps.altitude_m > 0 else 1
                     ),
                     piexif.GPSIFD.GPSLatitude: (
-                        (abs(gps.latitude_degrees), 1),
-                        (latitude_minutes, 1),
-                        format_fraction(latitude_seconds),
+                        number_to_exif_rational(abs(latitude[0])),
+                        number_to_exif_rational(abs(latitude[1])),
+                        number_to_exif_rational(abs(latitude[2])),
                     ),
-                    piexif.GPSIFD.GPSLatitudeRef: "N" if gps.latitude > 0 else "S",
+                    piexif.GPSIFD.GPSLatitudeRef: "N" if latitude[0] > 0 else "S",
                     piexif.GPSIFD.GPSLongitude: (
-                        (abs(gps.longitude_degrees), 1),
-                        (longitude_minutes, 1),
-                        format_fraction(longitude_seconds),
+                        number_to_exif_rational(abs(longitude[0])),
+                        number_to_exif_rational(abs(longitude[1])),
+                        number_to_exif_rational(abs(longitude[2])),
                     ),
-                    piexif.GPSIFD.GPSLongitudeRef: "E" if gps.longitude > 0 else "W",
+                    piexif.GPSIFD.GPSLongitudeRef: "E" if longitude[0] > 0 else "W",
                     piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
                     piexif.GPSIFD.GPSSatellites: str(gps.satellites),
                     piexif.GPSIFD.GPSSpeed: (
-                        (0, 1)
+                        number_to_exif_rational(0)
                         if gps.speed_knots is None
-                        else format_fraction(Fraction(gps.speed_knots))
+                        else number_to_exif_rational(gps.speed_knots)
                     ),
                     piexif.GPSIFD.GPSSpeedRef: "N",
+                    piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
                 }
                 if gps.fix_quality_3d > 0:
                     gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(gps.fix_quality_3d)
@@ -238,9 +221,9 @@ def main():
                         "%Y:%m:%d", gps.timestamp_utc
                     )
                     gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
-                        (gps.timestamp_utc.tm_hour, 1),
-                        (gps.timestamp_utc.tm_min, 1),
-                        (gps.timestamp_utc.tm_sec, 1),
+                        number_to_exif_rational(gps.timestamp_utc.tm_hour),
+                        number_to_exif_rational(gps.timestamp_utc.tm_min),
+                        number_to_exif_rational(gps.timestamp_utc.tm_sec),
                     )
                 if gps.isactivedata:
                     gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata

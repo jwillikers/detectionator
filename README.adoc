@@ -2,7 +2,7 @@
 Jordan Williams <jordan@jwillikers.com>
 :experimental:
 :icons: font
-:keywords: camera detect detection object opencv photo pi picamera picamera2 python raspberry tensorflow
+:keywords: camera detect detection gps object opencv photo pi picamera picamera2 python raspberry tensorflow
 ifdef::env-github[]
 :tip-caption: :bulb:
 :note-caption: :information_source:
@@ -221,6 +221,13 @@ pip-sync requirements-dev.txt requirements.txt
 [,sh]
 ----
 pre-commit install
+----
+
+. Run the tests with https://docs.pytest.org/en/latest/[pytest].
++
+[,sh]
+----
+pytest
 ----
 
 . Upgrade the packages pinned in the `requirements.txt` file with the `pip-compile` command.

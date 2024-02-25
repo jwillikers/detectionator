@@ -38,5 +38,6 @@ repos:
       - id: pylint
         additional_dependencies:
         - adafruit-circuitpython-gps
-        - exif
+        - piexif
         - pyserial
+        - pytest
