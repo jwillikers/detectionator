@@ -265,7 +265,8 @@ pip-compile \
 
 == todo
 
-* CI
+* More CI
+* yamllint
 * mypy
 * Create a weatherproof enclosure for the camera.
 * Add a NixOS configuration and build SD card images.
