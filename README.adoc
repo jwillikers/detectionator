@@ -198,6 +198,41 @@ ln --force --relative --symbolic systemd/user/* ~/.config/systemd/user/
 systemctl --user enable --now detectionator.service
 ----
 
+== HDR
+
+The Raspberry Pi Camera Module 3 supports HDR, but only at a lower resolution.
+HDR support has to toggled when `detectionator.py` isn't running and requires passing a special flag to `detectionator.py`.
+
+. Show the available V4L subdevices.
++
+[,sh]
+----
+ls /dev/v4l-subdev*
+/dev/v4l-subdev0  /dev/v4l-subdev1  /dev/v4l-subdev2  /dev/v4l-subdev3
+----
+
+. To enable HDR support for the Raspberry Pi Camera Module 3, use the following command on one of the V4L subdevices.
+In my case, this ended up being `/dev/v4l-subdev2`.
++
+[,sh]
+----
+v4l2-ctl --set-ctrl wide_dynamic_range=1 --device /dev/v4l-subdev2
+----
+
+. Now that the Camera Module 3 is configured, just run `detectionator.py` with the `--hdr` flag to default to the proper resolution sizes when HDR is enabled.
++
+[,sh]
+----
+./detectionator.py --hdr
+----
+
+. To disable HDR support for the Raspberry Pi Camera Module 3, use this command with the corresponding V4L subdevice.
++
+[,sh]
+----
+v4l2-ctl --set-ctrl wide_dynamic_range=0 --device /dev/v4l-subdev2
+----
+
 == Development
 
 It's recommended to use the provided {pre-commit} checks when developing.

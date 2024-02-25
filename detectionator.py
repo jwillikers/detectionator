@@ -21,23 +21,14 @@ from exif_utils import (
 
 
 # todo Figure out the best values for the normal and low resolution sizes.
-# normal_size = (640, 480)
-# low_resolution_size = (320, 240)
-
 # Camera Module 3:
 #   HDR disabled: 4608 x 2592
 #   HDR enabled: 2304 x 1296
 #
-# Enable:
-#   v4l2-ctl --set-ctrl wide_dynamic_range=1 -d /dev/v4l-subdev2
-#
-# Disable:
-#   v4l2-ctl --set-ctrl wide_dynamic_range=0 -d /dev/v4l-subdev2
-#
-normal_size = (4608, 2592)
-# low_resolution_size = (576, 324)
-# low_resolution_size = (1152, 648)
+default_normal_resolution_size = (4608, 2592)
 default_low_resolution_size = (2304, 1296)
+default_normal_resolution_size_hdr = (2304, 1296)
+default_low_resolution_size_hdr = (1152, 648)
 
 
 def ReadLabelFile(file_path):
@@ -99,16 +90,27 @@ def main():
         help="The device path for the GPS serial device.",
         default="/dev/ttyUSBAdafruitUltimateGps",
     )
+    parser.add_argument(
+        "--hdr",
+        action=argparse.BooleanOptionalAction,
+        help="This option uses the default resolution for the Camera Module 3 when in HDR mode.",
+    )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
         "--low-resolution-width",
         help="The width to use for the low resolution size.",
-        default=default_low_resolution_size[0],
     )
     parser.add_argument(
         "--low-resolution-height",
         help="The height to use for the low resolution size.",
-        default=default_low_resolution_size[1],
+    )
+    parser.add_argument(
+        "--normal-resolution-width",
+        help="The width to use for the normal resolution size.",
+    )
+    parser.add_argument(
+        "--normal-resolution-height",
+        help="The height to use for the normal resolution size.",
     )
     parser.add_argument(
         "--match", help="The labels for which to capture photographs", nargs="*"
@@ -136,12 +138,32 @@ def main():
     if label_file:
         labels = ReadLabelFile(label_file)
 
+    normal_resolution_size = default_normal_resolution_size
+    low_resolution_size = default_low_resolution_size
+    if args.hdr:
+        normal_resolution_size = default_normal_resolution_size_hdr
+        low_resolution_size = default_low_resolution_size_hdr
+    normal_resolution_width = normal_resolution_size[0]
+    normal_resolution_height = normal_resolution_size[1]
+    low_resolution_width = low_resolution_size[0]
+    low_resolution_height = low_resolution_size[1]
+
+    if args.normal_resolution_width:
+        normal_resolution_width = args.normal_resolution_width
+    if args.normal_resolution_height:
+        normal_resolution_height = args.normal_resolution_height
+
+    if args.low_resolution_width:
+        low_resolution_width = args.low_resolution_width
+    if args.low_resolution_height:
+        low_resolution_height = args.low_resolution_height
+
     if (
-        normal_size[0] / args.low_resolution_width
-        != normal_size[1] / args.low_resolution_height
+        normal_resolution_width / low_resolution_width
+        != normal_resolution_height / low_resolution_height
     ):
         print(
-            f"The low resolution width, '{args.low_resolution_width}', and low resolution height, '{args.low_resolution_height}' must be a fraction of the normal size, '{normal_size[0]}x{normal_size[1]}'"
+            f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the normal size, '{normal_resolution_width}x{normal_resolution_height}'"
         )
         sys.exit(1)
 
@@ -175,12 +197,12 @@ def main():
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 9
         config = picam2.create_still_configuration(
-            main={"size": normal_size},
+            main={"size": (normal_resolution_width, normal_resolution_height)},
             lores={
                 # Only Pi 5 and newer can use formats besides YUV here.
                 # This avoids having to convert the image format for OpenCV later.
                 "format": "RGB888",
-                "size": (args.low_resolution_width, args.low_resolution_height),
+                "size": (low_resolution_width, low_resolution_height),
             },
             buffer_count=4,
             # Don't display anything in the preview window since the system is running headless.
