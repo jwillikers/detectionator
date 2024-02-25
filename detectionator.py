@@ -172,14 +172,16 @@ def main():
 
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 9
-        config = picam2.create_preview_configuration(
+        config = picam2.create_still_configuration(
             main={"size": normal_size},
             lores={
                 "size": (args.low_resolution_width, args.low_resolution_height),
+                # todo Pi 5 can use other formats here.
                 "format": "YUV420",
             },
+            # Don't display anything in the preview window since the system is running headless.
+            display=None,
         )
-        picam2.align_configuration(config)
         picam2.configure(config)
         stride = picam2.stream_configuration("lores")["stride"]
         picam2.start()
@@ -262,10 +264,7 @@ def main():
                 print("No GPS fix")
             matches_name = "-".join(matches)
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
-            capture_config = picam2.create_still_configuration()
-            picam2.switch_mode_and_capture_file(
-                capture_config, filename, delay=10, exif_data=exif_dict, format="jpeg"
-            )
+            picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
             print(f"Image captured: {filename}")
             frame += 1
             time.sleep(args.gap)
