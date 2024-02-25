@@ -68,7 +68,7 @@ def InferenceTensorFlow(image, model, labels, match_labels: list):
     num_boxes = interpreter.get_tensor(output_details[3]["index"])
 
     matches = set()
-    for i in range(int(num_boxes)):
+    for i in range(int(num_boxes.item())):
         classId = int(detected_classes[0][i])
         if match_labels and labels[classId] not in match_labels:
             continue
