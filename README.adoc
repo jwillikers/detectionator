@@ -272,6 +272,7 @@ pip-compile \
 
 == todo
 
+* Real logging
 * More CI
 * yamllint
 * mypy
