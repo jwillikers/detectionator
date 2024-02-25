@@ -5,10 +5,6 @@ After=default.target
 [Service]
 Type=simple
 ExecStartPre=/bin/sleep 1
-
-# HDR
-# ExecStart=v4l2-ctl --set-ctrl wide_dynamic_range=1 --device /dev/v4l-subdev2
-
 ExecStart=%h/Projects/detectionator/venv/bin/python \
     %h/Projects/detectionator/detectionator.py \
     --label %h/Projects/detectionator/models/coco_labels.txt \
