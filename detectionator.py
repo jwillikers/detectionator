@@ -24,7 +24,16 @@ from exif_utils import (
 # normal_size = (640, 480)
 # low_resolution_size = (320, 240)
 
-# Camera Module 3: 4608 x 2592
+# Camera Module 3:
+#   HDR disabled: 4608 x 2592
+#   HDR enabled: 2304 x 1296
+#
+# Enable:
+#   v4l2-ctl --set-ctrl wide_dynamic_range=1 -d /dev/v4l-subdev2
+#
+# Disable:
+#   v4l2-ctl --set-ctrl wide_dynamic_range=0 -d /dev/v4l-subdev2
+#
 normal_size = (4608, 2592)
 # low_resolution_size = (576, 324)
 # low_resolution_size = (1152, 648)
@@ -163,7 +172,6 @@ def main():
 
     frame = int(time.time())
     with Picamera2() as picam2:
-
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 9
         config = picam2.create_still_configuration(
