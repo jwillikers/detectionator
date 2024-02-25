@@ -80,27 +80,6 @@ sudo systemctl enable --now autoupload-rclone@$(systemd-escape --path ~/Pictures
 After your public key has been added to the `~/.ssh/authorized_keys` file on the Pi Camera, this can be configured in the `/etc/ssh/sshd_config` file.
 You can follow the instructions in my https://github.com/jwillikers/openssh-config[OpenSSH Config] repository to accomplish this and a few other optimizations.
 
-. Make the `~/Projects` directory.
-+
-[,sh]
-----
-mkdir --parents ~/Projects
-----
-
-. Clone this project's repository to the `~/Projects` directory.
-+
-[,sh]
-----
-git -C ~/Projects clone https://github.com/jwillikers/detectionator.git
-----
-
-. Change to the project's directory.
-+
-[,sh]
-----
-cd ~/Projects/detectionator
-----
-
 . Update the package lists.
 +
 [,sh]
@@ -122,6 +101,36 @@ I like fish, tmux, and vim, what can I say?
 ----
 sudo apt-get --yes install build-essential firewalld fish git libatlas-base-dev python3-dev python3-picamera2 python3-venv tmux vim
 ----
+
+. Make the `~/Projects` directory.
++
+[,sh]
+----
+mkdir --parents ~/Projects
+----
+
+. Clone this project's repository to the `~/Projects` directory.
++
+[,sh]
+----
+git -C ~/Projects clone https://github.com/jwillikers/detectionator.git
+----
+
+. Change to the project's directory.
++
+[,sh]
+----
+cd ~/Projects/detectionator
+----
+
+. Install the udev rules to create a static symlink for the serial device of the Adafruit Ultimate GPS.
++
+[,sh]
+----
+sudo cp etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules /etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules
+----
+
+. Connect the Adafruit Ultimate GPS to the Raspberry Pi.
 
 . Create a virtual environment for the project.
 +

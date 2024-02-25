@@ -55,6 +55,7 @@
         "Twidec",
         "uaccess",
         "UART",
+        "udev",
         "userns",
         "venv"
     ]

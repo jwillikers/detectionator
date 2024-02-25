@@ -86,6 +86,11 @@ def InferenceTensorFlow(image, model, labels, match_labels: list):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gap", help="The time to wait between pictures.", default=1)
+    parser.add_argument(
+        "--gps-serial-port",
+        help="The device path for the GPS serial device.",
+        default="/dev/ttyUSBAdafruitUltimateGps",
+    )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
         "--match", help="The labels for which to capture photographs", nargs="*"
@@ -129,7 +134,7 @@ def main():
 
     # Initialize the GPS
     # todo Use a static udev alias name for the GPS serial device.
-    uart = serial.Serial("/dev/ttyUSB0", baudrate=9600, timeout=10)
+    uart = serial.Serial(args.gps_serial_port, baudrate=9600, timeout=10)
     gps = adafruit_gps.GPS(uart, debug=False)
     gps.send_command(b"PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0")
     gps.send_command(b"PMTK220,1000")

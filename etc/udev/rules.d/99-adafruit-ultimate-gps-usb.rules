@@ -1,0 +1,14 @@
+# Adafruit Ultimate GPS USB
+#
+# Provide a symlink with a consistent name to the serial device of the Adafruit Ultimate GPS USB.
+#
+# This technically matches on the vendor id and product id for Silicon Labs CP210x UART Bridge.
+# Different board revisions may change the UART bridge and therefore the vendor id and product id.
+# Update accordingly.
+#
+# In case there is a conflict due to multiple devices with the same vendor and product ids, add an additional attribute to match on the serial number.
+#
+ACTION!="add|change", GOTO="adafruit_ultimate_gps_rules_end"
+SUBSYSTEM=="tty", ACTION=="add", ATTR{idVendor}=="10c4", ATTR{idProduct}=="ea60", SYMLINK+="ttyUSBAdafruitUltimateGps"
+SUBSYSTEM=="tty", ACTION=="add", ATTR{idVendor}=="10c4", ATTR{idProduct}=="ea60", SYMLINK+="ttyUSBAdafruitUltimateGps%E{ID_SERIAL_SHORT}"
+LABEL="adafruit_ultimate_gps_rules_end"
