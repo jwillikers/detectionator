@@ -10,7 +10,10 @@ format:
     just --fmt --unstable
 
 hdr device="/dev/v4l-subdev2" action="enable":
+    systemctl --user stop detectionator.service || true
+    pkill detectionator || true
     v4l2-ctl --set-ctrl wide_dynamic_range={{ if action == "enable" { "1" } else { "0" } }} --device {{ device }}
+    systemctl --user start detectionator.service || true
 
 init:
     #!/usr/bin/env bash
