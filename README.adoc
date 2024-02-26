@@ -222,13 +222,6 @@ In my case, this ended up being `/dev/v4l-subdev2`.
 v4l2-ctl --set-ctrl wide_dynamic_range=1 --device /dev/v4l-subdev2
 ----
 
-. Now that the Camera Module 3 is configured, just run `detectionator.py` with the `--hdr` flag to default to the proper resolution sizes when HDR is enabled.
-+
-[,sh]
-----
-./detectionator.py --hdr
-----
-
 . To disable HDR support for the Raspberry Pi Camera Module 3, use this command with the corresponding V4L subdevice.
 +
 [,sh]
