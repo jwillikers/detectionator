@@ -20,18 +20,7 @@ from exif_utils import (
 )
 
 
-# todo Figure out the best values for the normal and low resolution sizes.
-# Camera Module 3:
-#   HDR disabled: 4608 x 2592
-#   HDR enabled: 2304 x 1296
-#
-default_normal_resolution_size = (4608, 2592)
-default_low_resolution_size = (2304, 1296)
-default_normal_resolution_size_hdr = (2304, 1296)
-default_low_resolution_size_hdr = (1152, 648)
-
-
-def ReadLabelFile(file_path):
+def read_label_file(file_path):
     with open(file_path, "r", encoding="UTF-8") as f:
         lines = f.readlines()
     ret = {}
@@ -41,7 +30,7 @@ def ReadLabelFile(file_path):
     return ret
 
 
-def InferenceTensorFlow(image, model, labels, match_labels: list):
+def inference_tensorflow(image, model, labels, match_labels: list):
     interpreter = tflite.Interpreter(model_path=model, num_threads=4)
     interpreter.allocate_tensors()
 
@@ -90,11 +79,6 @@ def main():
         help="The device path for the GPS serial device.",
         default="/dev/ttyUSBAdafruitUltimateGps",
     )
-    parser.add_argument(
-        "--hdr",
-        action=argparse.BooleanOptionalAction,
-        help="This option uses the default resolution for the Camera Module 3 when in HDR mode.",
-    )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
         "--low-resolution-width",
@@ -103,14 +87,6 @@ def main():
     parser.add_argument(
         "--low-resolution-height",
         help="The height to use for the low resolution size.",
-    )
-    parser.add_argument(
-        "--normal-resolution-width",
-        help="The width to use for the normal resolution size.",
-    )
-    parser.add_argument(
-        "--normal-resolution-height",
-        help="The height to use for the normal resolution size.",
     )
     parser.add_argument(
         "--match", help="The labels for which to capture photographs", nargs="*"
@@ -136,36 +112,7 @@ def main():
 
     labels = None
     if label_file:
-        labels = ReadLabelFile(label_file)
-
-    normal_resolution_size = default_normal_resolution_size
-    low_resolution_size = default_low_resolution_size
-    if args.hdr:
-        normal_resolution_size = default_normal_resolution_size_hdr
-        low_resolution_size = default_low_resolution_size_hdr
-    normal_resolution_width = normal_resolution_size[0]
-    normal_resolution_height = normal_resolution_size[1]
-    low_resolution_width = low_resolution_size[0]
-    low_resolution_height = low_resolution_size[1]
-
-    if args.normal_resolution_width:
-        normal_resolution_width = args.normal_resolution_width
-    if args.normal_resolution_height:
-        normal_resolution_height = args.normal_resolution_height
-
-    if args.low_resolution_width:
-        low_resolution_width = args.low_resolution_width
-    if args.low_resolution_height:
-        low_resolution_height = args.low_resolution_height
-
-    if (
-        normal_resolution_width / low_resolution_width
-        != normal_resolution_height / low_resolution_height
-    ):
-        print(
-            f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the normal size, '{normal_resolution_width}x{normal_resolution_height}'"
-        )
-        sys.exit(1)
+        labels = read_label_file(label_file)
 
     match = []
     if args.match:
@@ -194,10 +141,29 @@ def main():
 
     frame = int(time.time())
     with Picamera2() as picam2:
+        if args.low_resolution_width:
+            low_resolution_width = args.low_resolution_width
+        else:
+            low_resolution_width = picam2.sensor_resolution[0] // 2
+
+        if args.low_resolution_height:
+            low_resolution_height = args.low_resolution_height
+        else:
+            low_resolution_height = picam2.sensor_resolution[1] // 2
+
+        if (
+            picam2.sensor_resolution[0] / low_resolution_width
+            != picam2.sensor_resolution[1] / low_resolution_height
+        ):
+            print(
+                f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the resolution, '{picam2.sensor_resolution}'"
+            )
+            sys.exit(1)
+
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 9
+
         config = picam2.create_still_configuration(
-            main={"size": (normal_resolution_width, normal_resolution_height)},
             lores={
                 # Only Pi 5 and newer can use formats besides YUV here.
                 # This avoids having to convert the image format for OpenCV later.
@@ -227,7 +193,7 @@ def main():
             time.sleep(0.1)
 
             image = picam2.capture_array("lores")
-            matches = InferenceTensorFlow(image, args.model, labels, match)
+            matches = inference_tensorflow(image, args.model, labels, match)
             if len(matches) == 0:
                 continue
             gps.update()
