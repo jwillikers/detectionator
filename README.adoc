@@ -62,6 +62,7 @@ This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
 . Insert the microSD card into the Raspberry Pi.
 . Boot the Raspberry Pi.
 . Follow the instructions to configure the storage service and autoupload {systemd} units in the {AutoUpload} README.
+. Install {just} by following the instructions in the https://github.com/casey/just?tab=readme-ov-file#installation[installation section].
 This will automatically upload photos in the `~/Pictures` directory.
 The commands to enable the units should look similar to the following.
 These use the _system_ units, though _user_ units work just as well.
@@ -98,8 +99,6 @@ sudo apt-get update
 sudo apt-get --yes full-upgrade
 ----
 
-. Install {just} by following the instructions in the https://github.com/casey/just?tab=readme-ov-file#installation[installation section].
-
 . Make the `~/Projects` directory.
 +
 [,sh]
@@ -127,7 +126,7 @@ It also installs a special udev rule for the Adafruit Ultimate GPS to give it a 
 +
 [,sh]
 ----
-just install
+just init
 ----
 
 . Reboot for the new udev rules to take effect.
@@ -154,7 +153,7 @@ just install
 == HDR
 
 The Raspberry Pi Camera Module 3 supports HDR, but only at a lower resolution.
-HDR support has to toggled when `detectionator.py` isn't running and requires passing a special flag to `detectionator.py`.
+HDR support has to toggled when `detectionator.py` isn't running.
 
 . Show the available V4L subdevices.
 +
@@ -176,7 +175,7 @@ just hdr /dev/v4l-subdev2
 +
 [,sh]
 ----
-just hdr /dev/v4l-subdev2 false
+just hdr /dev/v4l-subdev2 disable
 ----
 
 == Development
