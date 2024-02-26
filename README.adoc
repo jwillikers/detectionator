@@ -14,6 +14,7 @@ endif::[]
 :Exif: https://en.wikipedia.org/wiki/Exif[Exif]
 :Immich: https://immich.app/[Immich]
 :Immich-CLI: https://immich.app/docs/features/command-line-interface/[Immich CLI]
+:just: https://github.com/casey/just[just]
 :MinIO: https://min.io/[MinIO]
 :picamera2: https://github.com/raspberrypi/picamera2[picamera2]
 :pip-tools: https://github.com/jazzband/pip-tools[pip-tools]
@@ -60,7 +61,7 @@ The configuration files assume the primary user is `core`, which can be configur
 This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
 . Insert the microSD card into the Raspberry Pi.
 . Boot the Raspberry Pi.
-. Follow the instructions to configure the storage service and autoupload systemd units in the {AutoUpload} README.
+. Follow the instructions to configure the storage service and autoupload {systemd} units in the {AutoUpload} README.
 This will automatically upload photos in the `~/Pictures` directory.
 The commands to enable the units should look similar to the following.
 These use the _system_ units, though _user_ units work just as well.
@@ -97,13 +98,7 @@ sudo apt-get update
 sudo apt-get --yes full-upgrade
 ----
 
-. Install the necessary and unnecessary packages.
-I like fish, tmux, and vim, what can I say?
-+
-[,sh]
-----
-sudo apt-get --yes install build-essential firewalld fish git libatlas-base-dev python3-dev python3-picamera2 python3-venv tmux vim
-----
+. Install {just} by following the instructions in the https://github.com/casey/just?tab=readme-ov-file#installation[installation section].
 
 . Make the `~/Projects` directory.
 +
@@ -126,79 +121,34 @@ git -C ~/Projects clone https://github.com/jwillikers/detectionator.git
 cd ~/Projects/detectionator
 ----
 
-. Install the udev rules to create a static symlink for the serial device of the Adafruit Ultimate GPS.
+. Set up the environment with `just init`.
+This will install dependencies and initialize the virtual environment.
+It also installs a special udev rule for the Adafruit Ultimate GPS to give it a static device name.
 +
 [,sh]
 ----
-sudo cp etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules /etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules
+just install
 ----
 
-. Reboot for the change to take effect.
+. Reboot for the new udev rules to take effect.
 +
 [,sh]
 ----
 sudo systemctl reboot
 ----
 
-. Connect the Adafruit Ultimate GPS to the Raspberry Pi.
-
-. Create a virtual environment for the project.
+. Use `just run` to run the `detectionator.py` Python script inside the virtual environment.
 +
 [,sh]
 ----
-python -m venv --system-site-packages venv
+just run
 ----
 
-. Activate the virtual environment.
+. Install and activate the systemd service with `just install`.
 +
 [,sh]
 ----
-source venv/bin/activate.fish
-----
-
-. Install the dependencies in the venv.
-+
-[,sh]
-----
-python -m pip install --requirement requirements.txt
-----
-
-. Test the `detection.py` script.
-+
-[,sh]
-----
-python detectionator.py \
-    --model models/mobilenet_v2.tflite \
-    --label models/coco_labels.txt \
-    --output ~/Pictures
-----
-
-. Exit the virtual environment.
-+
-[,sh]
-----
-exit
-----
-
-. Create the systemd directory for user units.
-+
-[,sh]
-----
-mkdir --parents ~/.config/systemd/user
-----
-
-. Symlink the systemd unit to the `~/.config/systemd/user/` directory.
-+
-[,sh]
-----
-ln --force --relative --symbolic systemd/user/* ~/.config/systemd/user/
-----
-
-. Enable and start the `detectionator.service` systemd unit.
-+
-[,sh]
-----
-systemctl --user enable --now detectionator.service
+just install
 ----
 
 == HDR
@@ -219,93 +169,50 @@ In my case, this ended up being `/dev/v4l-subdev2`.
 +
 [,sh]
 ----
-v4l2-ctl --set-ctrl wide_dynamic_range=1 --device /dev/v4l-subdev2
+just hdr /dev/v4l-subdev2
 ----
 
 . To disable HDR support for the Raspberry Pi Camera Module 3, use this command with the corresponding V4L subdevice.
 +
 [,sh]
 ----
-v4l2-ctl --set-ctrl wide_dynamic_range=0 --device /dev/v4l-subdev2
+just hdr /dev/v4l-subdev2 false
 ----
 
 == Development
 
-It's recommended to use the provided {pre-commit} checks when developing.
-
-. Create a virtual environment if you haven't done so already.
+. Run `just init-dev` to initialize the virtual environment for development.
+This will install all of the necessary dependencies and the {pre-commit} hooks.
 +
 [,sh]
 ----
-python -m venv --system-site-packages venv
+just init-dev
 ----
 
-. Activate the virtual environment.
+. Run the tests with https://docs.pytest.org/en/latest/[pytest] by running `just test`.
 +
 [,sh]
 ----
-source venv/bin/activate.fish
+just test
 ----
 
-. Install the development packages.
+. To update dependencies, run `just update`.
 +
 [,sh]
 ----
-python -m pip install -r requirements-dev.txt
+just update
 ----
 
-. Install the packages.
-This project uses pip-tools to synchronize virtual environments for development.
-Sync your virtual environments packages with those pinned in the `requirements.txt` and `requirements-dev.txt` files with the `pip-sync` command.
+. Use `just --list` to list other available tasks.
 +
 [,sh]
 ----
-pip-sync requirements-dev.txt requirements.txt
-----
-
-. Install the Git hooks for pre-commit.
-+
-[,sh]
-----
-pre-commit install
-----
-
-. Run the tests with https://docs.pytest.org/en/latest/[pytest].
-+
-[,sh]
-----
-pytest
-----
-
-. Upgrade the packages pinned in the `requirements.txt` file with the `pip-compile` command.
-+
-[,sh]
-----
-pip-compile \
-  --allow-unsafe \
-  --generate-hashes \
-  --reuse-hashes \
-  --upgrade \
-  requirements.in
-----
-
-. The pinned development packages in the `requirements-dev.txt` file can be upgraded in the same fashion.
-+
-[,sh]
-----
-pip-compile \
-  --allow-unsafe \
-  --generate-hashes \
-  --reuse-hashes \
-  --upgrade \
-  requirements-dev.in
+just --list
 ----
 
 == todo
 
 * Real logging
-* More CI
-* yamllint
 * mypy
 * Create a weatherproof enclosure for the camera.
 * Add a NixOS configuration and build SD card images.

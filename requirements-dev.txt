@@ -51,6 +51,11 @@ packaging==23.2 \
     # via
     #   build
     #   pytest
+pathspec==0.12.1 \
+    --hash=sha256:a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08 \
+    --hash=sha256:a482d51503a1ab33b1c67a6c3813a26953dbdc71c31dacaef9a838c4e29f5712 \
+    --hash=sha256:abdf2ccde2babf20f12de0f090074ebea14a544ece6a038e20fb5e000a30e869
+    # via yamllint
 pip-tools==7.4.0 \
     --hash=sha256:7e8cb659517504e2ae005f2a1f12adf0ab791b0f0c709983fd1de1664fced008 \
     --hash=sha256:a92a6ddfa86ff389fe6ace381d463bc436e2c705bd71d52117c25af5ce867bb7 \
@@ -136,7 +141,9 @@ pyyaml==6.0.1 \
     --hash=sha256:fca0e3a251908a499833aa292323f32437106001d436eca0e6e7833256674585 \
     --hash=sha256:fd1592b3fdf65fff2ad0004b5e363300ef59ced41c2e6b3a99d4089fa8c5435d \
     --hash=sha256:fd66fc5d0da6d9815ba2cebeb4205f95818ff4b79c3ebe268e75d961704af52f
-    # via pre-commit
+    # via
+    #   pre-commit
+    #   yamllint
 ruff==0.2.2 \
     --hash=sha256:0a9efb032855ffb3c21f6405751d5e147b0c6b631e3ca3f6b20f917572b97eb6 \
     --hash=sha256:0c126da55c38dd917621552ab430213bdb3273bb10ddb67bc4b761989210eb6e \
@@ -165,6 +172,11 @@ wheel==0.42.0 \
     --hash=sha256:177f9c9b0d45c47873b619f5b650346d632cdc35fb5e4d25058e09c9e581433d \
     --hash=sha256:c45be39f7882c9d34243236f2d63cbd58039e360f85d0913425fbd7ceea617a8
     # via pip-tools
+yamllint==1.35.1 \
+    --hash=sha256:2e16e504bb129ff515b37823b472750b36b6de07963bd74b307341ef5ad8bdc3 \
+    --hash=sha256:7a003809f88324fd2c877734f2d575ee7881dd9043360657cc8049c809eba6cd \
+    --hash=sha256:95964037e26be268d4818a24eb2b72cd1ac8b83d4a660842f6e14026ee7a669a
+    # via -r requirements-dev.in
 
 # The following packages are considered to be unsafe in a requirements file:
 pip==24.0 \
