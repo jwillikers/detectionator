@@ -238,7 +238,6 @@ def main():
                         break
             exif_dict = {}
             if gps.update() and gps.has_fix:
-
                 latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
                 longitude = degrees_decimal_to_degrees_minutes_seconds(gps.longitude)
 

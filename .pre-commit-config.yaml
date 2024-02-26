@@ -10,20 +10,16 @@ repos:
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
-  - repo: https://github.com/psf/black
-    rev: 24.2.0
-    hooks:
-      - id: black
   - repo: https://github.com/jazzband/pip-tools
     rev: 7.4.0
     hooks:
       - id: pip-compile
-        name: pip-compile setup.py
+        name: pip-compile requirements.in
         args:
           - --allow-unsafe
           - --generate-hashes
           - --reuse-hashes
-        files: ^(setup\.py|requirements\.txt)$
+        files: ^requirements\.(in|txt)$
       - id: pip-compile
         name: pip-compile requirements-dev.in
         args:
@@ -32,12 +28,13 @@ repos:
           - --reuse-hashes
           - requirements-dev.in
         files: ^requirements-dev\.(in|txt)$
-  - repo: https://github.com/PyCQA/pylint
-    rev: v3.0.4
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.2.2
     hooks:
-      - id: pylint
-        additional_dependencies:
-        - adafruit-circuitpython-gps
-        - piexif
-        - pyserial
-        - pytest
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/adrienverge/yamllint.git
+    rev: v1.35.1
+    hooks:
+      - id: yamllint

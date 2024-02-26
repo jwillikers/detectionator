@@ -12,20 +12,8 @@ build-backend = "setuptools.build_meta"
 dependencies = { file = ["requirements.in"] }
 dev-dependencies = { file = ["requirements-dev.in"] }
 
-[tool.pylint.messages_control]
-disable = [
-    "fixme",
-    "import-error",
-    "invalid-name",
-    "line-too-long",
-    "missing-class-docstring",
-    "missing-function-docstring",
-    "missing-module-docstring",
-    "redefined-outer-name",
-    "too-many-branches",
-    "too-many-locals",
-    "too-many-statements",
-]
-
 [tool.setuptools]
 py-modules = []
+
+[tool.ruff]
+target-version = "py311"
