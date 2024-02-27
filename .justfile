@@ -51,7 +51,7 @@ lint:
 
 alias r := run
 
-run model="models/mobilenet_v2.tflite" label="models/coco_labels.txt" output=(home_directory() / "Pictures") *args:
+run model="models/mobilenet_v2.tflite" label="models/coco_labels.txt" output=(home_directory() / "Pictures") *args="":
     venv/bin/python detectionator.py \
         --label {{ label }} \
         --model {{ model }} \
