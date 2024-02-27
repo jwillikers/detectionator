@@ -47,7 +47,7 @@ alias l := lint
 
 lint:
     venv/bin/yamllint .
-    venv/bin/ruff check .
+    venv/bin/ruff check --fix .
 
 alias r := run
 
