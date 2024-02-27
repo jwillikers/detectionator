@@ -24,7 +24,7 @@ init:
         sudo apt-get --yes install firewalld libatlas-base-dev python3-dev python3-picamera2 python3-venv
     fi
     [ -d venv ] || python -m venv --system-site-packages venv
-    venv/bin/python -m pip install -r requirements.txt
+    venv/bin/python -m pip install --requirement requirements.txt
 
 init-dev: && sync
     #!/usr/bin/env bash
@@ -34,7 +34,7 @@ init-dev: && sync
         sudo apt-get --yes install libatlas-base-dev python3-dev python3-picamera2 python3-venv
     fi
     [ -d venv ] || python -m venv --system-site-packages venv
-    venv/bin/python -m pip install -r requirements-dev.txt
+    venv/bin/python -m pip install --requirement requirements-dev.txt
     venv/bin/pre-commit install
 
 install: init

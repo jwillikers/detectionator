@@ -161,7 +161,7 @@ def main():
             sys.exit(1)
 
         picam2.options["quality"] = 95
-        picam2.options["compress_level"] = 9
+        picam2.options["compress_level"] = 0
 
         config = picam2.create_still_configuration(
             lores={
