@@ -253,7 +253,7 @@ def main():
                 scaler_crop_maximum,
                 (low_resolution_width, low_resolution_height),
             )
-            capture_config.controls["AfWindows"] = [adjusted_focal_point]
+            capture_config["controls"]["AfWindows"] = [adjusted_focal_point]
             picam2.switch_mode(capture_config)
             # todo Capture the GPS data asynchronously while the camera autofocuses.
             exif_dict = {}
