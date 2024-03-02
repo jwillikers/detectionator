@@ -113,7 +113,7 @@ def scale(coord, scaler_crop_maximum, lores):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gap", help="The time to wait between pictures.", default=0.5)
+    parser.add_argument("--gap", help="The time to wait between pictures.", default=0.2)
     parser.add_argument(
         "--gps-serial-port",
         help="The device path for the GPS serial device.",
