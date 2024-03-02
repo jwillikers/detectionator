@@ -203,24 +203,28 @@ def main():
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 0
 
-        config = picam2.create_still_configuration(
-            buffer_count=4,
-            # Minimize the time it takes to autofocus by setting the frame rate.
-            # https://github.com/raspberrypi/picamera2/issues/884
-            # controls={'FrameRate': 30},
-            # Don't display anything in the preview window since the system is running headless.
+        preview_config = picam2.create_preview_configuration(
             display=None,
-            lores={
+            main={
                 # Only Pi 5 and newer can use formats besides YUV here.
                 # This avoids having to convert the image format for OpenCV later.
                 "format": "RGB888",
                 "size": (low_resolution_width, low_resolution_height),
             },
         )
-        picam2.configure(config)
-        # Enable autofocus.
-        if "AfMode" in picam2.camera_controls:
-            picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
+        picam2.configure(preview_config)
+
+        capture_config = picam2.create_still_configuration(
+            # Minimize the time it takes to autofocus by setting the frame rate.
+            # https://github.com/raspberrypi/picamera2/issues/884
+            # controls={'FrameRate': 30},
+            # Enable autofocus.
+            controls={"AfMode": controls.AfModeEnum.Auto}
+            if "AfMode" in picam2.camera_controls
+            else {},
+            # Don't display anything in the preview window since the system is running headless.
+            display=None,
+        )
         scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
         time.sleep(1)
         picam2.start()
@@ -236,7 +240,7 @@ def main():
             # Take a quick breather to give the CPU a break.
             time.sleep(0.1)
 
-            image = picam2.capture_array("lores")
+            image = picam2.capture_array()
             matches = inference_tensorflow(image, args.model, labels, match)
             if len(matches) == 0:
                 continue
@@ -248,12 +252,9 @@ def main():
                 scaler_crop_maximum,
                 (low_resolution_width, low_resolution_height),
             )
-            picam2.set_controls({"AfWindows": [adjusted_focal_point]})
-            if "AfMode" in picam2.camera_controls:
-                for _ in range(5):
-                    if picam2.autofocus_cycle():
-                        break
-                    logging.warning("Autofocus cycle failed.")
+            capture_config["controls"]["AfWindows"] = [adjusted_focal_point]
+            picam2.switch_mode(capture_config)
+            # todo Capture the GPS data asynchronously while the camera autofocuses.
             exif_dict = {}
             if gps.update() and gps.has_fix:
                 latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
@@ -309,7 +310,13 @@ def main():
             if labels:
                 matches_name = "-".join([i[2] for i in matches])
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
+            if "AfMode" in picam2.camera_controls:
+                for _ in range(15):
+                    if picam2.autofocus_cycle():
+                        break
+                    logging.warning("Autofocus cycle failed.")
             picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
+            picam2.switch_mode(preview_config)
             logging.info(f"Image captured: {filename}")
             frame += 1
             time.sleep(args.gap)
