@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import logging
 import os
 import signal
 import sys
@@ -64,9 +65,9 @@ def inference_tensorflow(image, model, labels, match_labels: list):
         score = detected_scores[0][i]
         if score > 0.5:
             if labels:
-                print(labels[classId], "score = ", score)
+                logging.info(labels[classId], "score = ", score)
             else:
-                print("score = ", score)
+                logging.info("score = ", score)
             matches.add(labels[classId])
     return matches
 
@@ -99,8 +100,8 @@ def main():
     if args.output:
         output_directory = args.output
     if not os.path.isdir(output_directory):
-        print(f"The output directory '{output_directory}' does not exist")
-        print(f"Creating the output directory '{output_directory}'")
+        logging.warning(f"The output directory '{output_directory}' does not exist")
+        logging.warning(f"Creating the output directory '{output_directory}'")
         try:
             os.mkdir(output_directory)
         except FileExistsError:
@@ -121,12 +122,12 @@ def main():
     if labels is not None:
         for m in match:
             if m not in labels.values():
-                print(
+                logging.error(
                     f"The match '{m}' does not appear in the labels file {label_file}"
                 )
                 sys.exit(1)
 
-    print(f"Will take photographs of: {match}")
+    logging.info(f"Will take photographs of: {match}")
 
     # Initialize the GPS
     # todo Use a static udev alias name for the GPS serial device.
@@ -155,7 +156,7 @@ def main():
             picam2.sensor_resolution[0] / low_resolution_width
             != picam2.sensor_resolution[1] / low_resolution_height
         ):
-            print(
+            logging.error(
                 f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the resolution, '{picam2.sensor_resolution}'"
             )
             sys.exit(1)
@@ -164,15 +165,18 @@ def main():
         picam2.options["compress_level"] = 0
 
         config = picam2.create_still_configuration(
+            buffer_count=4,
+            # Minimize the time it takes to autofocus by setting the frame rate.
+            # https://github.com/raspberrypi/picamera2/issues/884
+            # controls={'FrameRate': 30},
+            # Don't display anything in the preview window since the system is running headless.
+            display=None,
             lores={
                 # Only Pi 5 and newer can use formats besides YUV here.
                 # This avoids having to convert the image format for OpenCV later.
                 "format": "RGB888",
                 "size": (low_resolution_width, low_resolution_height),
             },
-            buffer_count=4,
-            # Don't display anything in the preview window since the system is running headless.
-            display=None,
         )
         picam2.configure(config)
         # Enable autofocus.
@@ -182,7 +186,7 @@ def main():
         picam2.start()
 
         def signal_handler(_sig, _frame):
-            print("You pressed Ctrl+C!")
+            logging.info("You pressed Ctrl+C!")
             picam2.stop()
             sys.exit(0)
 
@@ -202,6 +206,7 @@ def main():
                 for _ in range(5):
                     if picam2.autofocus_cycle():
                         break
+                    logging.warning("Autofocus cycle failed.")
             exif_dict = {}
             if gps.update() and gps.has_fix:
                 latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
@@ -250,13 +255,13 @@ def main():
                 if gps.isactivedata:
                     gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata
                 exif_dict = {"GPS": gps_ifd}
-                print(f"Exif GPS metadata: {gps_ifd}")
+                logging.info(f"Exif GPS metadata: {gps_ifd}")
             else:
-                print("No GPS fix")
+                logging.warning("No GPS fix")
             matches_name = "-".join(matches)
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
             picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
-            print(f"Image captured: {filename}")
+            logging.info(f"Image captured: {filename}")
             frame += 1
             time.sleep(args.gap)
 
