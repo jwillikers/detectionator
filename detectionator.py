@@ -44,6 +44,7 @@ def inference_tensorflow(image, model, labels, match_labels: list):
         floating_model = True
 
     picture = cv2.resize(image, (width, height))
+    initial_h, initial_w, _channels = picture.shape
 
     input_data = np.expand_dims(picture, axis=0)
     if floating_model:
@@ -53,23 +54,61 @@ def inference_tensorflow(image, model, labels, match_labels: list):
 
     interpreter.invoke()
 
+    detected_boxes = interpreter.get_tensor(output_details[0]["index"])
     detected_classes = interpreter.get_tensor(output_details[1]["index"])
     detected_scores = interpreter.get_tensor(output_details[2]["index"])
     num_boxes = interpreter.get_tensor(output_details[3]["index"])
 
-    matches = set()
+    matches = list()
+    # match:
+    #   score
+    #   rectangle
+    #   label
     for i in range(int(num_boxes.item())):
+        top, left, bottom, right = detected_boxes[0][i]
         classId = int(detected_classes[0][i])
         if match_labels and labels[classId] not in match_labels:
             continue
         score = detected_scores[0][i]
         if score > 0.5:
+            xmin = left * initial_w
+            ymin = bottom * initial_h
+            xmax = right * initial_w
+            ymax = top * initial_h
+            box = [xmin, ymin, xmax, ymax]
+            match = (score, box)
             if labels:
-                logging.info(labels[classId], "score = ", score)
+                match = (*match, labels[classId])
+                logging.info(f"label = {labels[classId]}, score = {score}")
             else:
-                logging.info("score = ", score)
-            matches.add(labels[classId])
+                logging.info(f"score = {score}")
+            matches.append(match)
     return matches
+
+
+def scale(coord, scaler_crop_maximum, lores):
+    x_offset, y_offset, width, height = coord
+
+    # scaler_crop_maximum represents a larger image than the image we use so we need to account
+    x_offset_scm, y_offset_scm, _width_scm, _height_scm = scaler_crop_maximum
+
+    # create a scale so that you can scale the preview to the SCM
+    y_scale = scaler_crop_maximum[3] / lores[1]
+    x_scale = scaler_crop_maximum[2] / lores[0]
+    print("y_scale, x_scale", y_scale, x_scale)
+
+    # scale coords to SCM
+    y_offset_scaled = int(y_offset * y_scale)
+    height_scaled = int(height * y_scale)
+    x_offset_scaled = int(x_offset * x_scale)
+    width_scaled = int(width * x_scale)
+
+    return (
+        x_offset_scm + x_offset_scaled,
+        y_offset_scm + y_offset_scaled,
+        width_scaled,
+        height_scaled,
+    )
 
 
 def main():
@@ -182,6 +221,7 @@ def main():
         # Enable autofocus.
         if "AfMode" in picam2.camera_controls:
             picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
+        scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
         time.sleep(1)
         picam2.start()
 
@@ -202,6 +242,13 @@ def main():
                 continue
             gps.update()
             # Autofocus
+            best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
+            adjusted_focal_point = scale(
+                best_match[1],
+                scaler_crop_maximum,
+                (low_resolution_width, low_resolution_height),
+            )
+            picam2.set_controls({"AfWindows": [adjusted_focal_point]})
             if "AfMode" in picam2.camera_controls:
                 for _ in range(5):
                     if picam2.autofocus_cycle():
@@ -258,7 +305,9 @@ def main():
                 logging.info(f"Exif GPS metadata: {gps_ifd}")
             else:
                 logging.warning("No GPS fix")
-            matches_name = "-".join(matches)
+            matches_name = "detection"
+            if labels:
+                matches_name = "-".join([i[2] for i in matches])
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
             picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
             logging.info(f"Image captured: {filename}")
