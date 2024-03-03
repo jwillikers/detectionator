@@ -212,7 +212,6 @@ just --list
 
 == todo
 
-* Real logging
 * mypy
 * Create a weatherproof enclosure for the camera.
 * Add a NixOS configuration and build SD card images.
