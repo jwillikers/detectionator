@@ -139,8 +139,8 @@ def main():
     if args.output:
         output_directory = args.output
     if not os.path.isdir(output_directory):
-        logging.warning(f"The output directory '{output_directory}' does not exist")
-        logging.warning(f"Creating the output directory '{output_directory}'")
+        logging.info(f"The output directory '{output_directory}' does not exist")
+        logging.info(f"Creating the output directory '{output_directory}'")
         try:
             os.mkdir(output_directory)
         except FileExistsError:
