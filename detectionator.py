@@ -111,6 +111,59 @@ def scale(coord, scaler_crop_maximum, lores):
     )
 
 
+# Retrieve and format the data from the GPS for EXIF.
+def get_gps_exif_metadata(gps: adafruit_gps.GPS) -> dict:
+    if not gps.has_fix:
+        return {}
+
+    latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
+    longitude = degrees_decimal_to_degrees_minutes_seconds(gps.longitude)
+
+    gps_ifd = {
+        piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
+            abs(0 if gps.altitude_m is None else gps.altitude_m)
+        ),
+        piexif.GPSIFD.GPSAltitudeRef: (
+            0 if gps.altitude_m is None or gps.altitude_m > 0 else 1
+        ),
+        piexif.GPSIFD.GPSLatitude: (
+            number_to_exif_rational(abs(latitude[0])),
+            number_to_exif_rational(abs(latitude[1])),
+            number_to_exif_rational(abs(latitude[2])),
+        ),
+        piexif.GPSIFD.GPSLatitudeRef: "N" if latitude[0] > 0 else "S",
+        piexif.GPSIFD.GPSLongitude: (
+            number_to_exif_rational(abs(longitude[0])),
+            number_to_exif_rational(abs(longitude[1])),
+            number_to_exif_rational(abs(longitude[2])),
+        ),
+        piexif.GPSIFD.GPSLongitudeRef: "E" if longitude[0] > 0 else "W",
+        piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
+        piexif.GPSIFD.GPSSatellites: str(gps.satellites),
+        piexif.GPSIFD.GPSSpeed: (
+            number_to_exif_rational(0)
+            if gps.speed_knots is None
+            else number_to_exif_rational(gps.speed_knots)
+        ),
+        piexif.GPSIFD.GPSSpeedRef: "N",
+        piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
+    }
+    if gps.fix_quality_3d > 0:
+        gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(gps.fix_quality_3d)
+    if gps.timestamp_utc:
+        gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
+            "%Y:%m:%d", gps.timestamp_utc
+        )
+        gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
+            number_to_exif_rational(gps.timestamp_utc.tm_hour),
+            number_to_exif_rational(gps.timestamp_utc.tm_min),
+            number_to_exif_rational(gps.timestamp_utc.tm_sec),
+        )
+    if gps.isactivedata:
+        gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata
+    return gps_ifd
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gap", help="The time to wait between pictures.", default=0.2)
@@ -260,57 +313,16 @@ def main():
             focus_cycle_job = None
             if "AfMode" in picam2.camera_controls:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            exif_dict = {}
-            if gps.update() and gps.has_fix:
-                latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
-                longitude = degrees_decimal_to_degrees_minutes_seconds(gps.longitude)
 
-                gps_ifd = {
-                    piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
-                        abs(0 if gps.altitude_m is None else gps.altitude_m)
-                    ),
-                    piexif.GPSIFD.GPSAltitudeRef: (
-                        0 if gps.altitude_m is None or gps.altitude_m > 0 else 1
-                    ),
-                    piexif.GPSIFD.GPSLatitude: (
-                        number_to_exif_rational(abs(latitude[0])),
-                        number_to_exif_rational(abs(latitude[1])),
-                        number_to_exif_rational(abs(latitude[2])),
-                    ),
-                    piexif.GPSIFD.GPSLatitudeRef: "N" if latitude[0] > 0 else "S",
-                    piexif.GPSIFD.GPSLongitude: (
-                        number_to_exif_rational(abs(longitude[0])),
-                        number_to_exif_rational(abs(longitude[1])),
-                        number_to_exif_rational(abs(longitude[2])),
-                    ),
-                    piexif.GPSIFD.GPSLongitudeRef: "E" if longitude[0] > 0 else "W",
-                    piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
-                    piexif.GPSIFD.GPSSatellites: str(gps.satellites),
-                    piexif.GPSIFD.GPSSpeed: (
-                        number_to_exif_rational(0)
-                        if gps.speed_knots is None
-                        else number_to_exif_rational(gps.speed_knots)
-                    ),
-                    piexif.GPSIFD.GPSSpeedRef: "N",
-                    piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
-                }
-                if gps.fix_quality_3d > 0:
-                    gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(gps.fix_quality_3d)
-                if gps.timestamp_utc:
-                    gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
-                        "%Y:%m:%d", gps.timestamp_utc
-                    )
-                    gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
-                        number_to_exif_rational(gps.timestamp_utc.tm_hour),
-                        number_to_exif_rational(gps.timestamp_utc.tm_min),
-                        number_to_exif_rational(gps.timestamp_utc.tm_sec),
-                    )
-                if gps.isactivedata:
-                    gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata
-                exif_dict = {"GPS": gps_ifd}
-                logging.debug(f"Exif GPS metadata: {gps_ifd}")
+            exif_metadata = {}
+            gps.update()
+            gps_exif_metadata = get_gps_exif_metadata(gps)
+            if gps_exif_metadata:
+                exif_metadata["GPS"] = gps_exif_metadata
+                logging.debug(f"Exif GPS metadata: {gps_exif_metadata}")
             else:
                 logging.warning("No GPS fix")
+
             matches_name = "detection"
             if labels:
                 matches_name = "-".join([i[2] for i in matches])
@@ -318,7 +330,7 @@ def main():
             if "AfMode" in picam2.camera_controls:
                 if not picam2.wait(focus_cycle_job):
                     logging.warning("Autofocus cycle failed.")
-            picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
+            picam2.capture_file(filename, exif_data=exif_metadata, format="jpeg")
             logging.info(f"Captured image '{filename}': {matches}")
             frame += 1
             time.sleep(args.gap)
