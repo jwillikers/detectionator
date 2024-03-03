@@ -79,9 +79,9 @@ def inference_tensorflow(image, model, labels, match_labels: list):
             match = (score, box)
             if labels:
                 match = (*match, labels[classId])
-                logging.info(f"label = {labels[classId]}, score = {score}")
+                logging.debug(f"label = {labels[classId]}, score = {score}")
             else:
-                logging.info(f"score = {score}")
+                logging.debug(f"score = {score}")
             matches.append(match)
     return matches
 
@@ -121,6 +121,9 @@ def main():
     )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
+        "--log-level", help="The log level, i.e. debug, info, warn etc.", default="info"
+    )
+    parser.add_argument(
         "--low-resolution-width",
         help="The width to use for the low resolution size.",
     )
@@ -134,6 +137,11 @@ def main():
     parser.add_argument("--model", help="Path of the detection model.", required=True)
     parser.add_argument("--output", help="Directory path for the output images.")
     args = parser.parse_args()
+
+    numeric_log_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(numeric_log_level, int):
+        raise ValueError(f"Invalid log level: {args.log_level}")
+    logging.basicConfig(level=numeric_log_level)
 
     output_directory = os.path.join(os.getenv("HOME"), "Pictures")
     if args.output:
@@ -302,7 +310,7 @@ def main():
                 if gps.isactivedata:
                     gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata
                 exif_dict = {"GPS": gps_ifd}
-                logging.info(f"Exif GPS metadata: {gps_ifd}")
+                logging.debug(f"Exif GPS metadata: {gps_ifd}")
             else:
                 logging.warning("No GPS fix")
             matches_name = "detection"
@@ -310,7 +318,7 @@ def main():
                 matches_name = "-".join([i[2] for i in matches])
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
             picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
-            logging.info(f"Image captured: {filename}")
+            logging.info(f"Captured image '{filename}': {matches}")
             frame += 1
             time.sleep(args.gap)
 
