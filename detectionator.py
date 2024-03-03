@@ -174,7 +174,7 @@ def main():
     )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
-        "--log-level", help="The log level, i.e. debug, info, warn etc.", default="info"
+        "--log-level", help="The log level, i.e. debug, info, warn etc.", default="warn"
     )
     parser.add_argument(
         "--low-resolution-width",
