@@ -257,11 +257,9 @@ def main():
                 (low_resolution_width, low_resolution_height),
             )
             picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+            focus_cycle_job = None
             if "AfMode" in picam2.camera_controls:
-                for _ in range(5):
-                    if picam2.autofocus_cycle():
-                        break
-                    logging.warning("Autofocus cycle failed.")
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
             exif_dict = {}
             if gps.update() and gps.has_fix:
                 latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
@@ -317,6 +315,9 @@ def main():
             if labels:
                 matches_name = "-".join([i[2] for i in matches])
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
+            if "AfMode" in picam2.camera_controls:
+                if not picam2.wait(focus_cycle_job):
+                    logging.warning("Autofocus cycle failed.")
             picam2.capture_file(filename, exif_data=exif_dict, format="jpeg")
             logging.info(f"Captured image '{filename}': {matches}")
             frame += 1
