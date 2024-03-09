@@ -39,7 +39,8 @@ install: init
     mkdir --parents {{ config_directory() }}/systemd/user
     ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload
-    systemctl --user enable --now detectionator.service
+    systemctl --user enable detectionator.service
+    systemctl --user restart detectionator.service
 
 alias l := lint
 
