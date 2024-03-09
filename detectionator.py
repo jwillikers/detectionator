@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from functools import partial
 import logging
 import os
 import signal
@@ -162,6 +163,10 @@ def get_gps_exif_metadata(gps: adafruit_gps.GPS) -> dict:
     if gps.isactivedata:
         gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata
     return gps_ifd
+
+
+def captured_file(filename: str, matches):
+    logging.info(f"Captured image '{filename}': {matches}")
 
 
 def main():
@@ -330,8 +335,12 @@ def main():
             if "AfMode" in picam2.camera_controls:
                 if not picam2.wait(focus_cycle_job):
                     logging.warning("Autofocus cycle failed.")
-            picam2.capture_file(filename, exif_data=exif_metadata, format="jpeg")
-            logging.info(f"Captured image '{filename}': {matches}")
+            picam2.capture_file(
+                filename,
+                exif_data=exif_metadata,
+                format="jpeg",
+                signal_function=partial(captured_file, filename, matches),
+            )
             frame += 1
             time.sleep(args.gap)
 
