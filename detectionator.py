@@ -178,7 +178,7 @@ def main():
     parser.add_argument(
         "--gps-serial-port",
         help="The device path for the GPS serial device.",
-        default="/dev/ttyUSBAdafruitUltimateGps",
+        default="/dev/serial0",
     )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(

@@ -40,7 +40,12 @@ The project is largely based off of the tensorflow example in the {picamera2} pr
 == Components
 
 The Detectionator is based off of the Raspberry Pi 5 and the Camera Module 3.
-It incorporates a GPS to obtain the geolocation data to embed in the photographs.
+It incorporates a GPS HAT for the Raspberry Pi to obtain the geolocation data to embed in the photographs.
+
+[NOTE]
+====
+The GPS HAT requires soldering on a GPIO header.
+====
 
 .Detectionator Components
 * https://www.raspberrypi.com/products/raspberry-pi-5-model-b/[Raspberry Pi 5 Model B] (4 GB RAM or better)
@@ -49,6 +54,8 @@ It incorporates a GPS to obtain the geolocation data to embed in the photographs
 * https://www.arducam.com/product/white-camera-enclosure-case-pi-cameras/[Camera Enclosure Case for Raspberry Pi Camera Module 3/V1/V2 and Arducam 16MP/64MP Camera]
 // todo I might switch to the HAT and use gpsd instead: https://www.adafruit.com/product/2324
 * https://www.adafruit.com/product/4279[Adafruit Ultimate GPS GNSS with USB - 99 channel w/10 Hz updates]
+* https://www.adafruit.com/product/2324[Adafruit Ultimate GPS HAT for Raspberry Pi]
+* A CR1220 Battery for the RTC.
 * A sufficiently large and performant microSD card.
 The https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-ultimate-adapter-microsdxc-128gb-mb-my128sa-am/[128GB Samsung Pro Ultimate] and https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-endurance-adapter-microsdxc-128gb-mb-mj128ka-am/[128GB Samsung Pro Endurance] are two good options.
 * A USB-C to USB-A cable to connect the Adafruit Ultimate GPS with USB to the Pi.
@@ -66,13 +73,13 @@ This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
 . Install {just} by following the instructions in the https://github.com/casey/just?tab=readme-ov-file#installation[installation section].
 This will automatically upload photos in the `~/Pictures` directory.
 The commands to enable the units should look similar to the following.
-These use the _system_ units, though _user_ units work just as well.
+Use the _user_ unit, for Immich.
 +
 Immich::
 +
 [,sh]
 ----
-sudo systemctl enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).path
+systemctl --user enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).path
 ----
 
 Rclone::
@@ -128,6 +135,23 @@ It also installs a special udev rule for the Adafruit Ultimate GPS to give it a 
 [,sh]
 ----
 just init
+----
+
+. Enable the serial port hardware in `config.txt`.
++
+./boot/firmware/config.txt
+[,ini]
+----
+[all]
+dtparam=uart0=on
+----
+
+. Ensure that `console=tty1` is in `/boot/firmware/cmdline.txt` and not `console=ttyAMA0`.
++
+./boot/firmware/cmdline.txt
+[source]
+----
+console=tty1 root=PARTUUID=c64d4099-02 rootfstype=ext4 fsck.repair=yes rootwait cfg80211.ieee80211_regdom=US
 ----
 
 . Reboot for the new udev rules to take effect.
@@ -212,6 +236,7 @@ just --list
 
 == todo
 
+* Use https://gpsd.gitlab.io/gpsd/gpsd-time-service-howto.html[gpsd].
 * mypy
 * Create a weatherproof enclosure for the camera.
 * Add a NixOS configuration and build SD card images.
@@ -219,6 +244,7 @@ just --list
 == See Also
 
 * https://docs.circuitpython.org/projects/gps/en/latest/[Adafruit GPS Library Documentation]
+* https://learn.adafruit.com/adafruit-ultimate-gps-hat-for-raspberry-pi[Adafruit Ultimate GPS HAT for Raspberry Pi Documentation]
 * https://www.cipa.jp/std/documents/e/DC-008-2012_E.pdf[Exchangeable image file format for digital still cameras Exif Version 2.3]
 * https://pyserial.readthedocs.io/en/latest/index.html[pySerial Documentation]
 * https://www.raspberrypi.com/news/using-the-picamera2-library-with-tensorflow-lite/[Using the Picamera2 library with TensorFlow Lite]

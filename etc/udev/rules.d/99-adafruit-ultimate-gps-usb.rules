@@ -9,6 +9,6 @@
 # In case there is a conflict due to multiple devices with the same vendor and product ids, add an additional attribute to match on the serial number.
 #
 SUBSYSTEM!="usb|tty", ACTION!="add|change", GOTO="adafruit_ultimate_gps_rules_end"
-ACTION=="add", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyUSBAdafruitUltimateGps"
-ACTION=="add", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyUSBAdafruitUltimateGps%E{ID_SERIAL_SHORT}"
+ACTION=="add", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyUSBAdafruitUltimateGps", MODE="0666", GROUP="dialout", TAG+="uaccess"
+ACTION=="add", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyUSBAdafruitUltimateGps%E{ID_SERIAL_SHORT}", MODE="0666", GROUP="dialout", TAG+="uaccess"
 LABEL="adafruit_ultimate_gps_rules_end"
