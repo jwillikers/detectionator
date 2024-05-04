@@ -7,13 +7,12 @@ import signal
 import sys
 import time
 
-import adafruit_gps
+import gps
 import cv2
 from libcamera import controls
 import numpy as np
 from picamera2 import Picamera2
 import piexif
-import serial
 import tflite_runtime.interpreter as tflite
 
 from exif_utils import (
@@ -113,20 +112,27 @@ def scale(coord, scaler_crop_maximum, lores):
 
 
 # Retrieve and format the data from the GPS for EXIF.
-def get_gps_exif_metadata(gps: adafruit_gps.GPS) -> dict:
-    if not gps.has_fix:
+def get_gps_exif_metadata(session: gps.gps) -> dict:
+    if session.read() != 0 and not (gps.MODE_SET & session.valid):
         return {}
 
-    latitude = degrees_decimal_to_degrees_minutes_seconds(gps.latitude)
-    longitude = degrees_decimal_to_degrees_minutes_seconds(gps.longitude)
+    fix_mode = session.fix.mode
+    if fix_mode in [0, gps.MODE_NO_FIX]:
+        return {}
+
+    if gps.isfinite(session.fix.latitude):
+        latitude = degrees_decimal_to_degrees_minutes_seconds(session.fix.latitude)
+    if gps.isfinite(session.fix.longitude):
+        longitude = degrees_decimal_to_degrees_minutes_seconds(session.fix.longitude)
+
+    # if gps.ALTITUDE_SET & session.valid
+    altitude = session.fix.altHAE
 
     gps_ifd = {
         piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
-            abs(0 if gps.altitude_m is None else gps.altitude_m)
+            abs(0 if altitude is None else altitude)
         ),
-        piexif.GPSIFD.GPSAltitudeRef: (
-            0 if gps.altitude_m is None or gps.altitude_m > 0 else 1
-        ),
+        piexif.GPSIFD.GPSAltitudeRef: (0 if altitude is None or altitude > 0 else 1),
         piexif.GPSIFD.GPSLatitude: (
             number_to_exif_rational(abs(latitude[0])),
             number_to_exif_rational(abs(latitude[1])),
@@ -140,28 +146,27 @@ def get_gps_exif_metadata(gps: adafruit_gps.GPS) -> dict:
         ),
         piexif.GPSIFD.GPSLongitudeRef: "E" if longitude[0] > 0 else "W",
         piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
-        piexif.GPSIFD.GPSSatellites: str(gps.satellites),
+        piexif.GPSIFD.GPSSatellites: str(session.satellites_used),
         piexif.GPSIFD.GPSSpeed: (
             number_to_exif_rational(0)
-            if gps.speed_knots is None
-            else number_to_exif_rational(gps.speed_knots)
+            if session.fix.speed is None
+            # Convert m/sec to km/hour
+            else number_to_exif_rational(session.fix.speed * 3.6)
         ),
-        piexif.GPSIFD.GPSSpeedRef: "N",
+        piexif.GPSIFD.GPSSpeedRef: "K",
         piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
     }
-    if gps.fix_quality_3d > 0:
-        gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(gps.fix_quality_3d)
-    if gps.timestamp_utc:
+    gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
+    if gps.TIME_SET & session.valid:
         gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
-            "%Y:%m:%d", gps.timestamp_utc
+            "%Y:%m:%d", session.fix.time
         )
         gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
             number_to_exif_rational(gps.timestamp_utc.tm_hour),
             number_to_exif_rational(gps.timestamp_utc.tm_min),
             number_to_exif_rational(gps.timestamp_utc.tm_sec),
         )
-    if gps.isactivedata:
-        gps_ifd[piexif.GPSIFD.GPSStatus] = gps.isactivedata
+    gps_ifd[piexif.GPSIFD.GPSStatus] = session.fix.status
     return gps_ifd
 
 
@@ -175,11 +180,6 @@ def captured_file(filename: str, matches, job):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--gap", help="The time to wait between pictures.", default=0.2)
-    parser.add_argument(
-        "--gps-serial-port",
-        help="The device path for the GPS serial device.",
-        default="/dev/serial0",
-    )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
         "--log-level", help="The log level, i.e. debug, info, warn etc.", default="warn"
@@ -238,15 +238,7 @@ def main():
     logging.info(f"Will take photographs of: {match}")
 
     # Initialize the GPS
-    # todo Use a static udev alias name for the GPS serial device.
-    uart = serial.Serial(args.gps_serial_port, baudrate=9600, timeout=10)
-    gps = adafruit_gps.GPS(uart, debug=False)
-    gps.send_command(b"PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0")
-    gps.send_command(b"PMTK220,1000")
-    time.sleep(0.5)
-    gps.update()
-    time.sleep(0.5)
-    gps.update()
+    gps_session = gps.gps(mode=gps.WATCH_ENABLE)
 
     frame = int(time.time())
     with Picamera2() as picam2:
@@ -289,6 +281,8 @@ def main():
         picam2.configure(config)
         # Enable autofocus.
         if "AfMode" in picam2.camera_controls:
+            # todo Test continuous autofocus.
+            # picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous})
             picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
         scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
         time.sleep(1)
@@ -309,7 +303,6 @@ def main():
             matches = inference_tensorflow(image, args.model, labels, match)
             if len(matches) == 0:
                 continue
-            gps.update()
             # Autofocus
             best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
             adjusted_focal_point = scale(
@@ -323,8 +316,7 @@ def main():
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
 
             exif_metadata = {}
-            gps.update()
-            gps_exif_metadata = get_gps_exif_metadata(gps)
+            gps_exif_metadata = get_gps_exif_metadata(gps_session)
             if gps_exif_metadata:
                 exif_metadata["GPS"] = gps_exif_metadata
                 logging.debug(f"Exif GPS metadata: {gps_exif_metadata}")

@@ -19,8 +19,9 @@ init:
     sudo cp etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules /etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules
     distro=$(awk -F= '$1=="ID" { print $2 ;}' /etc/os-release)
     if [ "$distro" = "debian" ]; then
-        sudo apt-get --yes install chrony firewalld libatlas-base-dev python3-dev python3-picamera2 python3-venv
+        sudo apt-get --yes install chrony firewalld gpsd gpsd-clients libatlas-base-dev pps-tools python3-dev python3-gps python3-picamera2 python3-venv
     fi
+    sudo systemctl enable --now chrony gpsd
     [ -d venv ] || python -m venv --system-site-packages venv
     venv/bin/python -m pip install --requirement requirements.txt
 
