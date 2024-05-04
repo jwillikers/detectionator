@@ -127,12 +127,15 @@ def get_gps_exif_metadata(session: gps.gps) -> dict:
 
     # if gps.ALTITUDE_SET & session.valid
     altitude = session.fix.altHAE
+    speed = session.fix.speed
 
     gps_ifd = {
         piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
-            abs(0 if altitude is None else altitude)
+            abs(altitude if gps.isfinite(altitude) else 0)
         ),
-        piexif.GPSIFD.GPSAltitudeRef: (0 if altitude is None or altitude > 0 else 1),
+        piexif.GPSIFD.GPSAltitudeRef: (
+            1 if gps.isfinite(altitude) and altitude <= 0 else 0
+        ),
         piexif.GPSIFD.GPSLatitude: (
             number_to_exif_rational(abs(latitude[0])),
             number_to_exif_rational(abs(latitude[1])),
@@ -148,10 +151,10 @@ def get_gps_exif_metadata(session: gps.gps) -> dict:
         piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
         piexif.GPSIFD.GPSSatellites: str(session.satellites_used),
         piexif.GPSIFD.GPSSpeed: (
-            number_to_exif_rational(0)
-            if session.fix.speed is None
+            number_to_exif_rational(speed * 3.6)
+            if gps.isfinite(speed)
             # Convert m/sec to km/hour
-            else number_to_exif_rational(session.fix.speed * 3.6)
+            else number_to_exif_rational(0)
         ),
         piexif.GPSIFD.GPSSpeedRef: "K",
         piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
