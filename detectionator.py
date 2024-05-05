@@ -293,18 +293,21 @@ def main():
                 "size": (low_resolution_width, low_resolution_height),
             },
         )
+        has_autofocus = "AfMode" in picam2.camera_controls
         picam2.configure(config)
         # Enable autofocus.
-        if "AfMode" in picam2.camera_controls:
-            # todo Test continuous autofocus.
+        if has_autofocus:
             picam2.set_controls(
                 {
-                    "AfMode": controls.AfModeEnum.Continuous,
+                    # todo Test continuous autofocus.
+                    # "AfMode": controls.AfModeEnum.Continuous,
+                    "AfMode": controls.AfModeEnum.Auto,
+                    "AfMetering": controls.AfMeteringEnum.Windows,
                     "AfSpeed": controls.AfSpeedEnum.Fast,
+                    "AfRange": controls.AfRangeEnum.Full,
                 }
             )
-            # picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
-        _scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
+        scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
         time.sleep(1)
         picam2.start()
 
@@ -324,15 +327,15 @@ def main():
             if len(matches) == 0:
                 continue
             # Autofocus
-            _best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
-            # adjusted_focal_point = scale(
-            #     best_match[1],
-            #     scaler_crop_maximum,
-            #     (low_resolution_width, low_resolution_height),
-            # )
-            # picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+            best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
+            adjusted_focal_point = scale(
+                best_match[1],
+                scaler_crop_maximum,
+                (low_resolution_width, low_resolution_height),
+            )
+            picam2.set_controls({"AfWindows": [adjusted_focal_point]})
             focus_cycle_job = None
-            if "AfMode" in picam2.camera_controls:
+            if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
 
             exif_metadata = {}
@@ -347,7 +350,7 @@ def main():
             if labels:
                 matches_name = "-".join([i[2] for i in matches])
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
-            if "AfMode" in picam2.camera_controls:
+            if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
                     logging.warning("Autofocus cycle failed.")
             picam2.capture_file(
