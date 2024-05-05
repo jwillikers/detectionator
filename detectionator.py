@@ -96,7 +96,7 @@ def scale(coord, scaler_crop_maximum, lores):
     # create a scale so that you can scale the preview to the SCM
     y_scale = scaler_crop_maximum[3] / lores[1]
     x_scale = scaler_crop_maximum[2] / lores[0]
-    print("y_scale, x_scale", y_scale, x_scale)
+    logging.debug("y_scale, x_scale", y_scale, x_scale)
 
     # scale coords to SCM
     y_offset_scaled = int(y_offset * y_scale)
@@ -328,8 +328,14 @@ def main():
                 continue
             # Autofocus
             best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
+            match_box = best_match[1]
             adjusted_focal_point = scale(
-                best_match[1],
+                (
+                    match_box[0],
+                    match_box[1],
+                    abs(match_box[2] - match_box[0]),
+                    abs(match_box[3] - match_box[1]),
+                ),
                 scaler_crop_maximum,
                 (low_resolution_width, low_resolution_height),
             )
