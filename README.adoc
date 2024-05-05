@@ -144,7 +144,11 @@ just init
 ----
 [all]
 dtparam=uart0=on
+dtoverlay=pps-gpio,gpiopin=4
 ----
+
+// todo eeprom config
+// UART_BAUD=9600
 
 . Ensure that `console=tty1` is in `/boot/firmware/cmdline.txt` and not `console=ttyAMA0`.
 +
@@ -152,6 +156,41 @@ dtparam=uart0=on
 [source]
 ----
 console=tty1 root=PARTUUID=c64d4099-02 rootfstype=ext4 fsck.repair=yes rootwait cfg80211.ieee80211_regdom=US
+----
+
+. Configure the `pps-gpio` module to be loaded.
++
+[,sh]
+----
+echo 'pps-gpio' | sudo tee /etc/modules-load.d/pps-gpio.conf
+----
+
+. Configure gpsd to use the GPS HAT.
+The serial port `ttyAMA0` is used and since the Raspberry Pi 5 has a built-in RTC, `pps1` is used instead of `pps0` here.
++
+./etc/default/gpsd
+[,ini]
+----
+# Devices gpsd should collect to at boot time.
+# They need to be read/writeable, either by user gpsd or the group dialout.
+DEVICES="/dev/ttyAMA0 /dev/pps1"
+
+# Other options you want to pass to gpsd
+GPSD_OPTIONS="-n"
+
+# Automatically hot add/remove USB GPS devices via gpsdctl
+USBAUTO="true"
+----
+
+. Configure chrony to use the GPS HAT for time.
++
+./etc/chrony/conf.d/gpsd.conf
+[source]
+----
+# set larger delay to allow the NMEA source to overlap with
+# the other sources and avoid the falseticker status
+refclock SOCK /run/chrony.ttyAMA10.sock refid GPS precision 1e-1 offset 0.9999
+refclock SOCK /run/chrony.pps1.sock refid PPS precision 1e-7
 ----
 
 . Reboot for the new udev rules to take effect.
