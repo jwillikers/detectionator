@@ -295,8 +295,8 @@ def main():
         # Enable autofocus.
         if "AfMode" in picam2.camera_controls:
             # todo Test continuous autofocus.
-            # picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous})
-            picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
+            picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous})
+            # picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
         _scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
         time.sleep(1)
         picam2.start()
