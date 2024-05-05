@@ -172,15 +172,14 @@ def get_gps_exif_metadata(session: gps.gps) -> dict:
 
         gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
 
-        if gps.TIME_SET & session.valid:
-            gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
-                "%Y:%m:%d", session.fix.time
-            )
-            gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
-                number_to_exif_rational(session.fix.time.tm_hour),
-                number_to_exif_rational(session.fix.time.tm_min),
-                number_to_exif_rational(session.fix.time.tm_sec),
-            )
+        gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
+            "%Y:%m:%d", session.fix.time
+        )
+        gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
+            number_to_exif_rational(session.fix.time.tm_hour),
+            number_to_exif_rational(session.fix.time.tm_min),
+            number_to_exif_rational(session.fix.time.tm_sec),
+        )
         gps_ifd[piexif.GPSIFD.GPSStatus] = session.fix.status
         return gps_ifd
 
