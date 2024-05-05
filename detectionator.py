@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from dateutil import parser
 from functools import partial
 import logging
 import os
@@ -172,15 +173,13 @@ def get_gps_exif_metadata(session: gps.gps) -> dict:
 
         gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
 
-        gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
-            "%Y:%m:%d", session.fix.time
-        )
+        fix_time = parser.parse(session.fix.time)
+        gps_ifd[piexif.GPSIFD.GPSDateStamp] = fix_time.strftime("%Y:%m:%d")
         gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
-            number_to_exif_rational(session.fix.time.tm_hour),
-            number_to_exif_rational(session.fix.time.tm_min),
-            number_to_exif_rational(session.fix.time.tm_sec),
+            number_to_exif_rational(fix_time.hour),
+            number_to_exif_rational(fix_time.minute),
+            number_to_exif_rational(fix_time.second),
         )
-        gps_ifd[piexif.GPSIFD.GPSStatus] = session.fix.status
         return gps_ifd
 
 

@@ -2,6 +2,6 @@ numpy
 opencv-python
 piexif
 pillow
-pyserial
+python-dateutil
 #picamera2[gui]
 tflite-runtime
