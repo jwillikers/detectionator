@@ -192,7 +192,9 @@ def captured_file(filename: str, matches, job):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gap", help="The time to wait between pictures.", default=0.2)
+    parser.add_argument(
+        "--gap", help="The time to wait between pictures.", default=0.05
+    )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
         "--log-level", help="The log level, i.e. debug, info, warn etc.", default="warn"
