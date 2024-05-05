@@ -113,64 +113,76 @@ def scale(coord, scaler_crop_maximum, lores):
 
 # Retrieve and format the data from the GPS for EXIF.
 def get_gps_exif_metadata(session: gps.gps) -> dict:
-    if session.read() != 0 and not (gps.MODE_SET & session.valid):
-        return {}
+    while True:
+        if session.read() != 0:
+            logging.warning("GPS session read failed")
+            return {}
 
-    fix_mode = session.fix.mode
-    if fix_mode in [0, gps.MODE_NO_FIX]:
-        return {}
+        if not (gps.MODE_SET & session.valid):
+            logging.warning("GPS session invalid")
+            continue
 
-    if gps.isfinite(session.fix.latitude):
-        latitude = degrees_decimal_to_degrees_minutes_seconds(session.fix.latitude)
-    if gps.isfinite(session.fix.longitude):
-        longitude = degrees_decimal_to_degrees_minutes_seconds(session.fix.longitude)
+        fix_mode = session.fix.mode
+        if fix_mode in [0, gps.MODE_NO_FIX]:
+            logging.warning("No GPS fix")
+            return {}
 
-    # if gps.ALTITUDE_SET & session.valid
-    altitude = session.fix.altHAE
-    speed = session.fix.speed
+        # if gps.ALTITUDE_SET & session.valid
+        altitude = session.fix.altHAE
+        speed = session.fix.speed
 
-    gps_ifd = {
-        piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
-            abs(altitude if gps.isfinite(altitude) else 0)
-        ),
-        piexif.GPSIFD.GPSAltitudeRef: (
-            1 if gps.isfinite(altitude) and altitude <= 0 else 0
-        ),
-        piexif.GPSIFD.GPSLatitude: (
-            number_to_exif_rational(abs(latitude[0])),
-            number_to_exif_rational(abs(latitude[1])),
-            number_to_exif_rational(abs(latitude[2])),
-        ),
-        piexif.GPSIFD.GPSLatitudeRef: "N" if latitude[0] > 0 else "S",
-        piexif.GPSIFD.GPSLongitude: (
-            number_to_exif_rational(abs(longitude[0])),
-            number_to_exif_rational(abs(longitude[1])),
-            number_to_exif_rational(abs(longitude[2])),
-        ),
-        piexif.GPSIFD.GPSLongitudeRef: "E" if longitude[0] > 0 else "W",
-        piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
-        piexif.GPSIFD.GPSSatellites: str(session.satellites_used),
-        piexif.GPSIFD.GPSSpeed: (
-            number_to_exif_rational(speed * 3.6)
-            if gps.isfinite(speed)
-            # Convert m/sec to km/hour
-            else number_to_exif_rational(0)
-        ),
-        piexif.GPSIFD.GPSSpeedRef: "K",
-        piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
-    }
-    gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
-    if gps.TIME_SET & session.valid:
-        gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
-            "%Y:%m:%d", session.fix.time
-        )
-        gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
-            number_to_exif_rational(gps.timestamp_utc.tm_hour),
-            number_to_exif_rational(gps.timestamp_utc.tm_min),
-            number_to_exif_rational(gps.timestamp_utc.tm_sec),
-        )
-    gps_ifd[piexif.GPSIFD.GPSStatus] = session.fix.status
-    return gps_ifd
+        gps_ifd = {
+            piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
+                abs(altitude if gps.isfinite(altitude) else 0)
+            ),
+            piexif.GPSIFD.GPSAltitudeRef: (
+                1 if gps.isfinite(altitude) and altitude <= 0 else 0
+            ),
+            piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
+            piexif.GPSIFD.GPSSatellites: str(session.satellites_used),
+            piexif.GPSIFD.GPSSpeed: (
+                number_to_exif_rational(speed * 3.6)
+                if gps.isfinite(speed)
+                # Convert m/sec to km/hour
+                else number_to_exif_rational(0)
+            ),
+            piexif.GPSIFD.GPSSpeedRef: "K",
+            piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
+        }
+
+        if gps.isfinite(session.fix.latitude):
+            latitude = degrees_decimal_to_degrees_minutes_seconds(session.fix.latitude)
+            gps_ifd[piexif.GPSIFD.GPSLatitude] = (
+                number_to_exif_rational(abs(latitude[0])),
+                number_to_exif_rational(abs(latitude[1])),
+                number_to_exif_rational(abs(latitude[2])),
+            )
+            gps_ifd[piexif.GPSIFD.GPSLatitudeRef] = "N" if latitude[0] > 0 else "S"
+
+        if gps.isfinite(session.fix.longitude):
+            longitude = degrees_decimal_to_degrees_minutes_seconds(
+                session.fix.longitude
+            )
+            gps_ifd[piexif.GPSIFD.GPSLongitude] = (
+                number_to_exif_rational(abs(longitude[0])),
+                number_to_exif_rational(abs(longitude[1])),
+                number_to_exif_rational(abs(longitude[2])),
+            )
+            gps_ifd[piexif.GPSIFD.GPSLongitudeRef] = "E" if longitude[0] > 0 else "W"
+
+        gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
+
+        if gps.TIME_SET & session.valid:
+            gps_ifd[piexif.GPSIFD.GPSDateStamp] = time.strftime(
+                "%Y:%m:%d", session.fix.time
+            )
+            gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
+                number_to_exif_rational(session.fix.time.tm_hour),
+                number_to_exif_rational(session.fix.time.tm_min),
+                number_to_exif_rational(session.fix.time.tm_sec),
+            )
+        gps_ifd[piexif.GPSIFD.GPSStatus] = session.fix.status
+        return gps_ifd
 
 
 def captured_file(filename: str, matches, job):
@@ -287,7 +299,7 @@ def main():
             # todo Test continuous autofocus.
             # picam2.set_controls({"AfMode": controls.AfModeEnum.Continuous})
             picam2.set_controls({"AfMode": controls.AfModeEnum.Auto})
-        scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
+        _scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
         time.sleep(1)
         picam2.start()
 
@@ -307,13 +319,13 @@ def main():
             if len(matches) == 0:
                 continue
             # Autofocus
-            best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
-            adjusted_focal_point = scale(
-                best_match[1],
-                scaler_crop_maximum,
-                (low_resolution_width, low_resolution_height),
-            )
-            picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+            _best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
+            # adjusted_focal_point = scale(
+            #     best_match[1],
+            #     scaler_crop_maximum,
+            #     (low_resolution_width, low_resolution_height),
+            # )
+            # picam2.set_controls({"AfWindows": [adjusted_focal_point]})
             focus_cycle_job = None
             if "AfMode" in picam2.camera_controls:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
