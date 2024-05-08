@@ -320,7 +320,7 @@ def main():
 
         while True:
             # Take a quick breather to give the CPU a break.
-            time.sleep(0.05)
+            time.sleep(0.1)
 
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, args.model, labels, match)
