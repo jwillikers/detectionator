@@ -329,13 +329,14 @@ def main():
         signal.signal(signal.SIGINT, signal_handler)
 
         while True:
-            # Take a quick breather to give the CPU a break.
-            time.sleep(0.2)
-
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, args.model, labels, match)
             if len(matches) == 0:
+                # Take a quick breather to give the CPU a break.
+                # todo Increase / decrease this wait based on recent detections.
+                time.sleep(0.2)
                 continue
+
             # Autofocus
             best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
             match_box = best_match[1]
