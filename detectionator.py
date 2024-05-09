@@ -255,17 +255,27 @@ def main():
     # Initialize the GPS
     gps_session = gps.gps(mode=gps.WATCH_ENABLE)
 
+    # A scale of 8, really 1/8, results in a resolution of 576x324 which is still pretty high resolution for close-up detections.
+    # A scale of 12, really 1/12, results in a resolution of 384x216.
+    # A scale of 16, really 1/16, results in a resolution of 288x162.
+    # A scale of 32, really 1/32, results in a resolution of 144x81.
+    default_low_resolution_scale = 12
+
     frame = int(time.time())
     with Picamera2() as picam2:
         if args.low_resolution_width:
             low_resolution_width = args.low_resolution_width
         else:
-            low_resolution_width = picam2.sensor_resolution[0] // 2
+            low_resolution_width = (
+                picam2.sensor_resolution[0] // default_low_resolution_scale
+            )
 
         if args.low_resolution_height:
             low_resolution_height = args.low_resolution_height
         else:
-            low_resolution_height = picam2.sensor_resolution[1] // 2
+            low_resolution_height = (
+                picam2.sensor_resolution[1] // default_low_resolution_scale
+            )
 
         if (
             picam2.sensor_resolution[0] / low_resolution_width
