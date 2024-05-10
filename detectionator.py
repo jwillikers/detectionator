@@ -259,7 +259,7 @@ def main():
     # A scale of 12, really 1/12, results in a resolution of 384x216.
     # A scale of 16, really 1/16, results in a resolution of 288x162.
     # A scale of 32, really 1/32, results in a resolution of 144x81.
-    default_low_resolution_scale = 12
+    default_low_resolution_scale = 8
 
     frame = int(time.time())
     with Picamera2() as picam2:
