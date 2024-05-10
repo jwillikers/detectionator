@@ -275,10 +275,12 @@ just --list
 
 == todo
 
-* Use https://gpsd.gitlab.io/gpsd/gpsd-time-service-howto.html[gpsd].
-* mypy
-* Create a weatherproof enclosure for the camera.
-* Add a NixOS configuration and build SD card images.
+
+- [x] Use https://gpsd.gitlab.io/gpsd/gpsd-time-service-howto.html[gpsd].
+- [] Switch from picamera2 to gstreamer to work with more hardware.
+- [] mypy
+- [] Create a weatherproof enclosure for the camera.
+- [] Add a NixOS configuration and build SD card images.
 
 == See Also
 
