@@ -220,6 +220,16 @@ just run
 just install
 ----
 
+[TIP]
+====
+Send the application the `SIGUSR1` signal to capture sample photographs for both the high and low resolution modes.
+
+[,sh]
+----
+kill --signal SIGUSR1 $(pgrep python)
+----
+====
+
 == HDR
 
 The Raspberry Pi Camera Module 3 supports HDR, but only at a lower resolution.

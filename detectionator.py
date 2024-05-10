@@ -363,7 +363,10 @@ def main():
                 format="jpeg",
             )
 
-        signal.signal(signal.SIGUSR1, capture_sample)
+        def capture_sample_signal_handler(_sig, _frame):
+            capture_sample()
+
+        signal.signal(signal.SIGUSR1, capture_sample_signal_handler)
 
         if args.startup_capture:
             capture_sample()

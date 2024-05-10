@@ -42,6 +42,7 @@
         "NMEA",
         "noheadings",
         "Nushell",
+        "pgrep",
         "picam",
         "picamera",
         "piexif",
