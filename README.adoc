@@ -62,6 +62,12 @@ The https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-ultimat
 * A USB-C power supply for powering the Pi.
 * A fan or case with a fan to keep the Raspberry Pi 5 cool.
 
+[TIP]
+====
+The Adafruit Ultimate GPS HAT's cutout for the camera flex cable doesn't line up with the connectors on the Raspberry Pi 5.
+Use a drill to widen the cutout towards the edge of the board to allow the flex cable enough room to fit.
+====
+
 == Install
 
 . Install the 64-bit full version of https://www.raspberrypi.com/software/[Raspberry Pi OS] to a microSD card.
