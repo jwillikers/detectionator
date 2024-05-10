@@ -212,6 +212,11 @@ def main():
     )
     parser.add_argument("--model", help="Path of the detection model.", required=True)
     parser.add_argument("--output", help="Directory path for the output images.")
+    parser.add_argument(
+        "--startup-capture",
+        help="Take sample photographs when starting the program.",
+        action=argparse.BooleanOptionalAction,
+    )
     args = parser.parse_args()
 
     numeric_log_level = getattr(logging, args.log_level.upper(), None)
@@ -327,6 +332,34 @@ def main():
             sys.exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
+
+        # Take a sample photograph with both high and low resolution images for reference.
+        if args.startup_capture:
+            focus_cycle_job = None
+            if has_autofocus:
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            exif_metadata = {}
+            gps_exif_metadata = get_gps_exif_metadata(gps_session)
+            if gps_exif_metadata:
+                exif_metadata["GPS"] = gps_exif_metadata
+                logging.debug(f"Exif GPS metadata: {gps_exif_metadata}")
+            else:
+                logging.warning("No GPS fix")
+
+            if has_autofocus:
+                if not picam2.wait(focus_cycle_job):
+                    logging.warning("Autofocus cycle failed.")
+            picam2.capture_file(
+                f"test-low-res-{frame}.jpg",
+                name="lores",
+                exif_data=exif_metadata,
+                format="jpeg",
+            )
+            picam2.capture_file(
+                f"test-high-res-{frame}.jpg",
+                exif_data=exif_metadata,
+                format="jpeg",
+            )
 
         while True:
             image = picam2.capture_array("lores")
