@@ -350,13 +350,13 @@ def main():
                 if not picam2.wait(focus_cycle_job):
                     logging.warning("Autofocus cycle failed.")
             picam2.capture_file(
-                f"test-low-res-{frame}.jpg",
+                os.path.join(output_directory, f"test-low-res-{frame}.jpg"),
                 name="lores",
                 exif_data=exif_metadata,
                 format="jpeg",
             )
             picam2.capture_file(
-                f"test-high-res-{frame}.jpg",
+                os.path.join(output_directory, f"test-high-res-{frame}.jpg"),
                 exif_data=exif_metadata,
                 format="jpeg",
             )
