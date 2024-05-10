@@ -58,6 +58,7 @@
         "rclone",
         "refclock",
         "refid",
+        "SIGUSR",
         "subdev",
         "subdevice",
         "subdevices",

@@ -326,15 +326,17 @@ def main():
         time.sleep(1)
         picam2.start()
 
-        def signal_handler(_sig, _frame):
+        def interrupt_signal_handler(_sig, _frame):
             logging.info("You pressed Ctrl+C!")
             picam2.stop()
             sys.exit(0)
 
-        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGINT, interrupt_signal_handler)
 
         # Take a sample photograph with both high and low resolution images for reference.
-        if args.startup_capture:
+        def capture_sample():
+            timestamp = int(time.time())
+
             focus_cycle_job = None
             if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
@@ -350,16 +352,21 @@ def main():
                 if not picam2.wait(focus_cycle_job):
                     logging.warning("Autofocus cycle failed.")
             picam2.capture_file(
-                os.path.join(output_directory, f"test-low-res-{frame}.jpg"),
+                os.path.join(output_directory, f"low-res-sample-{timestamp}.jpg"),
                 name="lores",
                 exif_data=exif_metadata,
                 format="jpeg",
             )
             picam2.capture_file(
-                os.path.join(output_directory, f"test-high-res-{frame}.jpg"),
+                os.path.join(output_directory, f"high-res-sample-{timestamp}.jpg"),
                 exif_data=exif_metadata,
                 format="jpeg",
             )
+
+        signal.signal(signal.SIGUSR1, capture_sample)
+
+        if args.startup_capture:
+            capture_sample()
 
         while True:
             image = picam2.capture_array("lores")
