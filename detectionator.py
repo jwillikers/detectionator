@@ -269,7 +269,7 @@ def main():
 
     output_directory = os.path.join(os.getenv("HOME"), "Pictures")
     if args.output:
-        output_directory = args.output
+        output_directory = os.path.expanduser(args.output)
     if not os.path.isdir(output_directory):
         logging.info(f"The output directory '{output_directory}' does not exist")
         logging.info(f"Creating the output directory '{output_directory}'")
@@ -278,9 +278,11 @@ def main():
         except FileExistsError:
             pass
 
+    args.model = os.path.expanduser(args.model)
+
     label_file = None
     if args.label:
-        label_file = args.label
+        label_file = os.path.expanduser(args.label)
 
     labels = None
     if label_file:
