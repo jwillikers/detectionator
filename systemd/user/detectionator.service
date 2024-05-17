@@ -10,5 +10,12 @@ Restart=on-failure
 RestartSec=10
 KillMode=process
 
+# Steal all of the CPU time.
+Nice=-19
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=90
+IOSchedulingClass=realtime
+IOSchedulingPriority=1
+
 [Install]
 WantedBy=default.target
