@@ -427,6 +427,9 @@ def main():
                 # todo Update the GPS data asynchronously to allow the detection process to continue uninterrupted instead of blocking when there is a cache miss.
                 gps_exif_metadata = get_gps_exif_metadata(gps_session)
                 # Take a quick breather to give the CPU a break.
+                # 1/5 of a second results in about 50% CPU usage.
+                # 1/10 of a second results in about 80% CPU usage.
+                # 1/20 of a second results in about 130% CPU usage.
                 # todo Increase / decrease this wait based on recent detections.
                 time.sleep(0.05)
                 continue
