@@ -7,6 +7,8 @@ Type=simple
 ExecStartPre=/bin/sleep 1
 ExecStart=%h/Projects/detectionator/venv/bin/python \
     %h/Projects/detectionator/detectionator.py \
+    --burst 3 \
+    --gap 0 \
     --label %h/Projects/detectionator/models/coco_labels.txt \
     --match bird bear cat cow dog elephant giraffe horse sheep zebra \
     --model %h/Projects/detectionator/models/mobilenet_v2.tflite \

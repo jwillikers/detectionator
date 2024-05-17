@@ -193,7 +193,15 @@ def captured_file(filename: str, matches, job):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--gap", help="The time to wait between pictures.", default=0.05
+        "--burst",
+        help="The number of pictures to take after a successful detection.",
+        default=3,
+        type=int,
+    )
+    parser.add_argument(
+        "--gap",
+        help="The time to wait in between a successful detection and looking for the next detection. This gap is helpful for not capturing too many photographs of a detection, like when a capybara decides to take a nap in front of your camera.",
+        default=0.05,
     )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
@@ -218,6 +226,12 @@ def main():
         action=argparse.BooleanOptionalAction,
     )
     args = parser.parse_args()
+
+    if args.burst < 1:
+        logging.warn(
+            f"The burst value must be at least 1. Ignoring the provided burst value of '{args.burst}'."
+        )
+        args.burst = 1
 
     numeric_log_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_log_level, int):
@@ -420,6 +434,27 @@ def main():
                 signal_function=partial(captured_file, filename, matches),
             )
             frame += 1
+
+            # Capture burst photographs.
+            for _ in range(args.burst - 1):
+                focus_cycle_job = None
+                if has_autofocus:
+                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
+                matches_name = "detection"
+                if labels:
+                    matches_name = "-".join([i[2] for i in matches])
+                filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
+                if has_autofocus:
+                    if not picam2.wait(focus_cycle_job):
+                        logging.warning("Autofocus cycle failed.")
+                picam2.capture_file(
+                    filename,
+                    exif_data=exif_metadata,
+                    format="jpeg",
+                    signal_function=partial(captured_file, filename, matches),
+                )
+                frame += 1
+
             time.sleep(args.gap)
 
 
