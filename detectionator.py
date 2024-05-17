@@ -428,7 +428,7 @@ def main():
                 gps_exif_metadata = get_gps_exif_metadata(gps_session)
                 # Take a quick breather to give the CPU a break.
                 # todo Increase / decrease this wait based on recent detections.
-                time.sleep(0.2)
+                time.sleep(0.05)
                 continue
 
             # Autofocus
