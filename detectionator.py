@@ -203,7 +203,7 @@ def main():
             "detectionator.toml",
             "~/.config/detectionator/config.toml",
         ],
-        config_file_parser_class=configargparse.TomlConfigParser([]),
+        config_file_parser_class=configargparse.TomlConfigParser(["detectionator"]),
     )
     parser.add_argument(
         "--burst",
