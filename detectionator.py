@@ -125,7 +125,7 @@ def get_gps_exif_metadata(session: gps.gps) -> dict:
             return {}
 
         if not (gps.MODE_SET & session.valid):
-            logging.warning("GPS session invalid")
+            logging.debug("GPS session invalid")
             continue
 
         fix_mode = session.fix.mode
