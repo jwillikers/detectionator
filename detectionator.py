@@ -214,7 +214,6 @@ def main():
     parser.add(
         "-c",
         "--config",
-        required=True,
         is_config_file=True,
         help="The path to the config file to use.",
     )
