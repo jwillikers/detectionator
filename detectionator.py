@@ -211,7 +211,7 @@ def main():
         default=3,
         type=int,
     )
-    parser.add(
+    parser.add_argument(
         "-c",
         "--config",
         is_config_file=True,
