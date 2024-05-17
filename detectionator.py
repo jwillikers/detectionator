@@ -35,7 +35,7 @@ def read_label_file(file_path):
 
 
 def inference_tensorflow(image, model, labels, match_labels: list):
-    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter = tflite.Interpreter(model_path=str(model), num_threads=4)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
