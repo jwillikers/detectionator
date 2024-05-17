@@ -38,6 +38,8 @@ init-dev: && sync
 
 install: init
     mkdir --parents {{ config_directory() }}/systemd/user
+    mkdir --parents {{ config_directory() }}/detectionator
+    cp detectionator.toml.template {{ config_directory() }}/detectionator/config.toml
     ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload
     systemctl --user enable detectionator.service

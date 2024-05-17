@@ -1,0 +1,6 @@
+burst = 6
+gap = 0
+match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
+label = "~/Projects/detectionator/models/coco_labels.txt"
+model = "~/Projects/detectionator/models/mobilenet_v2.tflite"
+output = "~/Pictures"

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import configargparse
 from cachetools.func import ttl_cache
 from dateutil import parser
 from functools import partial
@@ -197,12 +198,25 @@ def captured_file(filename: str, matches, job):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = configargparse.ArgParser(
+        default_config_files=[
+            "detectionator.toml",
+            "~/.config/detectionator/config.toml",
+        ],
+        config_file_parser_class=configargparse.TomlConfigParser(),
+    )
     parser.add_argument(
         "--burst",
         help="The number of pictures to take after a successful detection.",
         default=3,
         type=int,
+    )
+    parser.add(
+        "-c",
+        "--config",
+        required=True,
+        is_config_file=True,
+        help="The path to the config file to use.",
     )
     parser.add_argument(
         "--gap",
