@@ -202,6 +202,7 @@ def main():
         "--gap",
         help="The time to wait in between a successful detection and looking for the next detection. This gap is helpful for not capturing too many photographs of a detection, like when a capybara decides to take a nap in front of your camera.",
         default=0.05,
+        type=float,
     )
     parser.add_argument("--label", help="Path of the labels file.")
     parser.add_argument(
