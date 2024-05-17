@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+from cachetools import cached, TTLCache
 from dateutil import parser
 from functools import partial
 import logging
@@ -114,6 +115,9 @@ def scale(coord, scaler_crop_maximum, lores):
 
 
 # Retrieve and format the data from the GPS for EXIF.
+# Only update the GPS data every 5 minutes to reduce latency.
+# Retrieving data from the GPS can take up to one second, which is too long.
+@cached(cache=TTLCache(maxsize=1, ttl=300))
 def get_gps_exif_metadata(session: gps.gps) -> dict:
     while True:
         if session.read() != 0:
@@ -235,16 +239,16 @@ def main():
     )
     args = parser.parse_args()
 
+    numeric_log_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(numeric_log_level, int):
+        raise ValueError(f"Invalid log level: {args.log_level}")
+    logging.basicConfig(level=numeric_log_level)
+
     if args.burst < 1:
         logging.warn(
             f"The burst value must be at least 1. Ignoring the provided burst value of '{args.burst}'."
         )
         args.burst = 1
-
-    numeric_log_level = getattr(logging, args.log_level.upper(), None)
-    if not isinstance(numeric_log_level, int):
-        raise ValueError(f"Invalid log level: {args.log_level}")
-    logging.basicConfig(level=numeric_log_level)
 
     output_directory = os.path.join(os.getenv("HOME"), "Pictures")
     if args.output:
@@ -397,6 +401,9 @@ def main():
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, args.model, labels, match)
             if len(matches) == 0:
+                # Retrieve the GPS data to ensure the cache is up-to-date in order to reduce latency when there is a detection.
+                # todo Update the GPS data asynchronously to allow the detection process to continue uninterrupted instead of blocking when there is a cache miss.
+                get_gps_exif_metadata(gps_session)
                 # Take a quick breather to give the CPU a break.
                 # todo Increase / decrease this wait based on recent detections.
                 time.sleep(0.2)

@@ -163,6 +163,11 @@ ruff==0.4.3 \
     --hash=sha256:eeb039f8428fcb6725bb63cbae92ad67b0559e68b5d80f840f11914afd8ddf7f \
     --hash=sha256:ff0a3ef2e3c4b6d133fbedcf9586abfbe38d076041f2dc18ffb2c7e0485d5a07
     # via -r requirements-dev.in
+types-cachetools==5.3.0.7 \
+    --hash=sha256:27c982cdb9cf3fead8b0089ee6b895715ecc99dac90ec29e2cab56eb1aaf4199 \
+    --hash=sha256:2c6d19900131b36d4fd5d7b316fd060870145153ead45e29dafbe10538533008 \
+    --hash=sha256:98c069dc7fc087b1b061703369c80751b0a0fc561f6fb072b554e5eee23773a0
+    # via -r requirements-dev.in
 virtualenv==20.26.1 \
     --hash=sha256:604bfdceaeece392802e6ae48e69cec49168b9c5f4a44e483963f9242eb0e78b \
     --hash=sha256:71c11a0f2ec69d818248974a7f948ee69655547ddc2148f45dd204e73eaaed04 \

@@ -297,6 +297,7 @@ just --list
 Can't cache the time and date from the GPS then.
 Use TTLCache from https://github.com/tkem/cachetools/[cachetools].
 - [] Add support for a TOML config file with https://github.com/bw2/ConfigArgParse[ConfigArgParse].
+- [] async
 - [] Switch from picamera2 to gstreamer to work with more hardware.
 - [] mypy
 - [] Create a weatherproof enclosure for the camera.
