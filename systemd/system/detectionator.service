@@ -1,0 +1,24 @@
+[Unit]
+Description=The Detectionator for capturing photographs using object detection
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sleep 1
+ExecStart=/home/jordan/Projects/detectionator/venv/bin/python /home/jordan/Projects/detectionator/detectionator.py
+Restart=on-failure
+RestartSec=10
+KillMode=process
+
+# Steal all of the CPU time.
+Nice=-19
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=90
+User=jordan
+Group=jordan
+AmbientCapabilities=CAP_SYS_ADMIN CAP_SYS_NICE
+IOSchedulingClass=realtime
+IOSchedulingPriority=1
+
+[Install]
+WantedBy=multi-user.target

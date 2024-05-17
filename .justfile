@@ -37,13 +37,24 @@ init-dev: && sync
     venv/bin/pre-commit install
 
 install: init
-    mkdir --parents {{ config_directory() }}/systemd/user
+    sudo mkdir --parents /etc/security/limits.d
+    sudo cp security/limits.d/99-detectionator.conf /etc/security/limits.d
+    sudo chown --recursive root:root /etc/security/limits.d
+    sudo mkdir --parents /etc/systemd/system
+    sudo cp systemd/system/* /etc/systemd/system/
+    sudo chown --recursive root:root /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo chown --recursive root:root /etc/detectionator
+    sudo mkdir --parents /etc/detectionator/
+    sudo cp detectionator.toml.template /etc//detectionator/config.toml
+    ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     mkdir --parents {{ config_directory() }}/detectionator
     cp detectionator.toml.template {{ config_directory() }}/detectionator/config.toml
+    mkdir --parents {{ config_directory() }}/systemd/user
     ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload
     systemctl --user enable detectionator.service
-    systemctl --user restart detectionator.service
+    sudo systemctl reboot
 
 alias l := lint
 

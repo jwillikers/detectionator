@@ -205,6 +205,7 @@ def main():
         default_config_files=[
             "detectionator.toml",
             "~/.config/detectionator/config.toml",
+            "/etc/detectionator/config.toml",
         ],
         config_file_parser_class=configargparse.TomlConfigParser(["detectionator"]),
     )
