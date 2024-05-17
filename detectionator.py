@@ -238,7 +238,10 @@ def main():
         type=int,
     )
     parser.add_argument(
-        "--match", help="The labels for which to capture photographs", nargs="*"
+        "--match",
+        help="A label for which to capture photographs. May be specified multiple times.",
+        action="append",
+        type=str,
     )
     parser.add_argument(
         "--model", help="Path of the detection model.", required=True, type=pathlib.Path
