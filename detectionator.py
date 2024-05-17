@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-from cachetools import cached, TTLCache
+from cachetools.func import ttl_cache
 from dateutil import parser
 from functools import partial
 import logging
@@ -117,7 +117,7 @@ def scale(coord, scaler_crop_maximum, lores):
 # Retrieve and format the data from the GPS for EXIF.
 # Only update the GPS data every 5 minutes to reduce latency.
 # Retrieving data from the GPS can take up to one second, which is too long.
-@cached(cache=TTLCache(maxsize=1, ttl=300))
+@ttl_cache(maxsize=1, ttl=300)
 def get_gps_exif_metadata(session: gps.gps) -> dict:
     while True:
         if session.read() != 0:
@@ -403,7 +403,7 @@ def main():
             if len(matches) == 0:
                 # Retrieve the GPS data to ensure the cache is up-to-date in order to reduce latency when there is a detection.
                 # todo Update the GPS data asynchronously to allow the detection process to continue uninterrupted instead of blocking when there is a cache miss.
-                get_gps_exif_metadata(gps_session)
+                gps_exif_metadata = get_gps_exif_metadata(gps_session)
                 # Take a quick breather to give the CPU a break.
                 # todo Increase / decrease this wait based on recent detections.
                 time.sleep(0.2)
