@@ -119,9 +119,9 @@ def scale(coord, scaler_crop_maximum, lores):
 
 
 # Retrieve and format the data from the GPS for EXIF.
-# Only update the GPS data every 5 minutes to reduce latency.
+# Only update the GPS data every 10 minutes to reduce latency.
 # Retrieving data from the GPS can take up to one second, which is too long.
-@ttl_cache(maxsize=1, ttl=300)
+@ttl_cache(maxsize=1, ttl=600)
 def get_gps_exif_metadata(session: gps.gps) -> dict:
     while True:
         if session.read() != 0:
