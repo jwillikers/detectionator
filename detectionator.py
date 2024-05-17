@@ -455,9 +455,6 @@ def main():
                 focus_cycle_job = None
                 if has_autofocus:
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
-                matches_name = "detection"
-                if labels:
-                    matches_name = "-".join([i[2] for i in matches])
                 filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
                 if has_autofocus:
                     if not picam2.wait(focus_cycle_job):
