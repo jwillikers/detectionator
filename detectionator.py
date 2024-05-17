@@ -4,6 +4,7 @@ from dateutil import parser
 from functools import partial
 import logging
 import os
+import pathlib
 import signal
 import sys
 import time
@@ -204,23 +205,29 @@ def main():
         default=0.05,
         type=float,
     )
-    parser.add_argument("--label", help="Path of the labels file.")
+    parser.add_argument("--label", help="Path of the labels file.", type=pathlib.Path)
     parser.add_argument(
         "--log-level", help="The log level, i.e. debug, info, warn etc.", default="warn"
     )
     parser.add_argument(
         "--low-resolution-width",
         help="The width to use for the low resolution size.",
+        type=int,
     )
     parser.add_argument(
         "--low-resolution-height",
         help="The height to use for the low resolution size.",
+        type=int,
     )
     parser.add_argument(
         "--match", help="The labels for which to capture photographs", nargs="*"
     )
-    parser.add_argument("--model", help="Path of the detection model.", required=True)
-    parser.add_argument("--output", help="Directory path for the output images.")
+    parser.add_argument(
+        "--model", help="Path of the detection model.", required=True, type=pathlib.Path
+    )
+    parser.add_argument(
+        "--output", help="Directory path for the output images.", type=pathlib.Path
+    )
     parser.add_argument(
         "--startup-capture",
         help="Take sample photographs when starting the program.",
