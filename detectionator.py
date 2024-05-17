@@ -25,6 +25,9 @@ from exif_utils import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 def read_label_file(file_path):
     with open(file_path, "r", encoding="UTF-8") as f:
         lines = f.readlines()
@@ -83,9 +86,9 @@ def inference_tensorflow(image, model, labels, match_labels: list):
             match = (score, box)
             if labels:
                 match = (*match, labels[classId])
-                logging.debug(f"label = {labels[classId]}, score = {score}")
+                logger.debug(f"label = {labels[classId]}, score = {score}")
             else:
-                logging.debug(f"score = {score}")
+                logger.debug(f"score = {score}")
             matches.append(match)
     return matches
 
@@ -99,7 +102,7 @@ def scale(coord, scaler_crop_maximum, lores):
     # create a scale so that you can scale the preview to the SCM
     y_scale = scaler_crop_maximum[3] / lores[1]
     x_scale = scaler_crop_maximum[2] / lores[0]
-    logging.debug("y_scale, x_scale", y_scale, x_scale)
+    logger.debug("y_scale, x_scale", y_scale, x_scale)
 
     # scale coords to SCM
     y_offset_scaled = int(y_offset * y_scale)
@@ -122,16 +125,16 @@ def scale(coord, scaler_crop_maximum, lores):
 def get_gps_exif_metadata(session: gps.gps) -> dict:
     while True:
         if session.read() != 0:
-            logging.warning("GPS session read failed")
+            logger.warning("GPS session read failed")
             return {}
 
         if not (gps.MODE_SET & session.valid):
-            logging.debug("GPS session invalid")
+            logger.debug("GPS session invalid")
             continue
 
         fix_mode = session.fix.mode
         if fix_mode in [0, gps.MODE_NO_FIX]:
-            logging.warning("No GPS fix")
+            logger.warning("No GPS fix")
             return {}
 
         # if gps.ALTITUDE_SET & session.valid
@@ -186,15 +189,15 @@ def get_gps_exif_metadata(session: gps.gps) -> dict:
             number_to_exif_rational(fix_time.minute),
             number_to_exif_rational(fix_time.second),
         )
-        logging.debug("Updated EXIF GPS data.")
+        logger.debug("Updated EXIF GPS data.")
         return gps_ifd
 
 
 def captured_file(filename: str, matches, job):
     if job:
-        logging.info(f"Captured image '{filename}': {matches}")
+        logger.info(f"Captured image '{filename}': {matches}")
     else:
-        logging.error(f"Failed to capture image '{filename}': {matches}")
+        logger.error(f"Failed to capture image '{filename}': {matches}")
 
 
 def main():
@@ -259,10 +262,10 @@ def main():
     numeric_log_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_log_level, int):
         raise ValueError(f"Invalid log level: {args.log_level}")
-    logging.basicConfig(level=numeric_log_level)
+    logger.basicConfig(level=numeric_log_level)
 
     if args.burst < 1:
-        logging.warn(
+        logger.warn(
             f"The burst value must be at least 1. Ignoring the provided burst value of '{args.burst}'."
         )
         args.burst = 1
@@ -271,8 +274,8 @@ def main():
     if args.output:
         output_directory = os.path.expanduser(args.output)
     if not os.path.isdir(output_directory):
-        logging.info(f"The output directory '{output_directory}' does not exist")
-        logging.info(f"Creating the output directory '{output_directory}'")
+        logger.info(f"The output directory '{output_directory}' does not exist")
+        logger.info(f"Creating the output directory '{output_directory}'")
         try:
             os.mkdir(output_directory)
         except FileExistsError:
@@ -295,12 +298,12 @@ def main():
     if labels is not None:
         for m in match:
             if m not in labels.values():
-                logging.error(
+                logger.error(
                     f"The match '{m}' does not appear in the labels file {label_file}"
                 )
                 sys.exit(1)
 
-    logging.info(f"Will take photographs of: {match}")
+    logger.info(f"Will take photographs of: {match}")
 
     # Initialize the GPS
     gps_session = gps.gps(mode=gps.WATCH_ENABLE)
@@ -331,7 +334,7 @@ def main():
             picam2.sensor_resolution[0] / low_resolution_width
             != picam2.sensor_resolution[1] / low_resolution_height
         ):
-            logging.error(
+            logger.error(
                 f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the resolution, '{picam2.sensor_resolution}'"
             )
             sys.exit(1)
@@ -372,7 +375,7 @@ def main():
         picam2.start()
 
         def interrupt_signal_handler(_sig, _frame):
-            logging.info("You pressed Ctrl+C!")
+            logger.info("You pressed Ctrl+C!")
             picam2.stop()
             sys.exit(0)
 
@@ -389,13 +392,13 @@ def main():
             gps_exif_metadata = get_gps_exif_metadata(gps_session)
             if gps_exif_metadata:
                 exif_metadata["GPS"] = gps_exif_metadata
-                logging.debug(f"Exif GPS metadata: {gps_exif_metadata}")
+                logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
             else:
-                logging.warning("No GPS fix")
+                logger.warning("No GPS fix")
 
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
-                    logging.warning("Autofocus cycle failed.")
+                    logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
                 os.path.join(output_directory, f"low-res-sample-{timestamp}.jpg"),
                 name="lores",
@@ -450,9 +453,9 @@ def main():
             gps_exif_metadata = get_gps_exif_metadata(gps_session)
             if gps_exif_metadata:
                 exif_metadata["GPS"] = gps_exif_metadata
-                logging.debug(f"Exif GPS metadata: {gps_exif_metadata}")
+                logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
             else:
-                logging.warning("No GPS fix")
+                logger.warning("No GPS fix")
 
             matches_name = "detection"
             if labels:
@@ -460,7 +463,7 @@ def main():
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
-                    logging.warning("Autofocus cycle failed.")
+                    logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
                 filename,
                 exif_data=exif_metadata,
@@ -477,7 +480,7 @@ def main():
                 filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
                 if has_autofocus:
                     if not picam2.wait(focus_cycle_job):
-                        logging.warning("Autofocus cycle failed.")
+                        logger.warning("Autofocus cycle failed.")
                 picam2.capture_file(
                     filename,
                     exif_data=exif_metadata,
