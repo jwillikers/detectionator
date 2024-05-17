@@ -291,8 +291,12 @@ just --list
 
 == todo
 
-
 - [x] Use https://gpsd.gitlab.io/gpsd/gpsd-time-service-howto.html[gpsd].
+- [] Create classes for different data types to better organize things.
+- [] Cache the GPS data to reduce the time to capture pictures between detections?
+Can't cache the time and date from the GPS then.
+Use TTLCache from https://github.com/tkem/cachetools/[cachetools].
+- [] Add support for a TOML config file with https://github.com/bw2/ConfigArgParse[ConfigArgParse].
 - [] Switch from picamera2 to gstreamer to work with more hardware.
 - [] mypy
 - [] Create a weatherproof enclosure for the camera.
