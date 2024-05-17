@@ -10,7 +10,6 @@ ExecStart=%h/Projects/detectionator/venv/bin/python \
     --burst 6 \
     --gap 0 \
     --label %h/Projects/detectionator/models/coco_labels.txt \
-    --log-level debug \
     --match bird bear cat cow dog elephant giraffe horse sheep zebra \
     --model %h/Projects/detectionator/models/mobilenet_v2.tflite \
     --output %h/Pictures
