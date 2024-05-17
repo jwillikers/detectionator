@@ -185,6 +185,7 @@ def get_gps_exif_metadata(session: gps.gps) -> dict:
             number_to_exif_rational(fix_time.minute),
             number_to_exif_rational(fix_time.second),
         )
+        logging.debug("Updated EXIF GPS data.")
         return gps_ifd
 
 
