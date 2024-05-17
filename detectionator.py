@@ -262,7 +262,7 @@ def main():
     numeric_log_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_log_level, int):
         raise ValueError(f"Invalid log level: {args.log_level}")
-    logger.basicConfig(level=numeric_log_level)
+    logger.setLevel(numeric_log_level)
 
     if args.burst < 1:
         logger.warn(
