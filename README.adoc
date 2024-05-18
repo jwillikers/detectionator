@@ -56,7 +56,10 @@ The GPS HAT requires soldering on a GPIO header.
 * https://www.adafruit.com/product/4279[Adafruit Ultimate GPS GNSS with USB - 99 channel w/10 Hz updates]
 * https://www.adafruit.com/product/2324[Adafruit Ultimate GPS HAT for Raspberry Pi]
 * A CR1220 Battery for the RTC.
-* A sufficiently large and performant microSD card.
+* https://shop.pimoroni.com/products/nvme-base?variant=41219587178579[NVMe Base for Raspberry Pi 5].
+* A sufficiently large and performant M.2 NVMe SSD.
+I prefer the SK hynix Gold P31 for lower-power and heat situations.
+* Alternatively, a sufficiently large and performant microSD card can be used instead of NVMe storage.
 The https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-ultimate-adapter-microsdxc-128gb-mb-my128sa-am/[128GB Samsung Pro Ultimate] and https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-endurance-adapter-microsdxc-128gb-mb-mj128ka-am/[128GB Samsung Pro Endurance] are two good options.
 * A USB-C to USB-A cable to connect the Adafruit Ultimate GPS with USB to the Pi.
 * A USB-C power supply for powering the Pi.
@@ -145,20 +148,21 @@ It also installs a special udev rule for the Adafruit Ultimate GPS to give it a 
 just init
 ----
 
-. Enable the serial port hardware in `config.txt`.
+. Enable the serial port hardware and better PCIe speeds in `config.txt`.
 +
 ./boot/firmware/config.txt
 [,ini]
 ----
 [all]
-dtparam=uart0=on
+dtparam=pciex1_gen=3
 dtoverlay=pps-gpio,gpiopin=4
+dtparam=uart0=on
 ----
 
 // todo eeprom config
 // UART_BAUD=9600
 
-. Ensure that `console=tty1` is in `/boot/firmware/cmdline.txt` and not `console=ttyAMA0`.
+. Ensure that `console=tty1` is in `/boot/firmware/cmdline.txt` and not `console=ttyAMA0` or `console=serial0`.
 +
 ./boot/firmware/cmdline.txt
 [source]
