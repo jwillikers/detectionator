@@ -375,6 +375,7 @@ def main():
                     "AfSpeed": controls.AfSpeedEnum.Fast
                     if args.autofocus_speed == "fast"
                     else controls.AfSpeedEnum.Normal,
+                    # todo Add a config option to set the autofocus range.
                     "AfRange": controls.AfRangeEnum.Full,
                 }
             )
