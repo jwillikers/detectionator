@@ -76,6 +76,8 @@ This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
 . Insert the microSD card into the Raspberry Pi.
 . Boot the Raspberry Pi.
 . Follow the instructions to configure the storage service and autoupload {systemd} units in the {AutoUpload} README.
+. Create `detectionator` user account.
+// todo
 . Install {just} by following the instructions in the https://github.com/casey/just?tab=readme-ov-file#installation[installation section].
 This will automatically upload photos in the `~/Pictures` directory.
 The commands to enable the units should look similar to the following.

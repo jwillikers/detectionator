@@ -5,7 +5,7 @@ After=multi-user.target
 [Service]
 Type=simple
 ExecStartPre=/bin/sleep 1
-ExecStart=/home/jordan/Projects/detectionator/venv/bin/python /home/jordan/Projects/detectionator/detectionator.py
+ExecStart=/home/detectionator/Projects/detectionator/venv/bin/python /home/detectionator/Projects/detectionator/detectionator.py
 Restart=on-failure
 RestartSec=10
 KillMode=process
