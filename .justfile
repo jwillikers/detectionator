@@ -37,7 +37,9 @@ init-dev: && sync
     venv/bin/python -m pip install --requirement requirements-dev.txt
     venv/bin/pre-commit install
 
-install: init
+alias install := install-system
+
+install-system: init
     sudo mkdir --parents /etc/security/limits.d
     sudo cp security/limits.d/99-detectionator.conf /etc/security/limits.d
     sudo chown --recursive root:root /etc/security/limits.d
@@ -48,14 +50,17 @@ install: init
     sudo chown --recursive root:root /etc/detectionator
     sudo mkdir --parents /etc/detectionator/
     sudo cp detectionator.toml.template /etc//detectionator/config.toml
+    sudo systemctl enable detectionator.service
+    sudo systemctl reboot
+
+install-user: init
     ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     mkdir --parents {{ config_directory() }}/detectionator
     cp detectionator.toml.template {{ config_directory() }}/detectionator/config.toml
     mkdir --parents {{ config_directory() }}/systemd/user
     ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload
-    systemctl --user enable detectionator.service
-    sudo systemctl reboot
+    systemctl --user enable --now detectionator.service
 
 alias l := lint
 
