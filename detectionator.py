@@ -420,6 +420,8 @@ def main():
         if args.startup_capture:
             capture_sample()
 
+        gps_exif_metadata = None
+
         while True:
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, args.model, labels, match)
@@ -454,7 +456,6 @@ def main():
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
 
             exif_metadata = {}
-            gps_exif_metadata = get_gps_exif_metadata(gps_session)
             if gps_exif_metadata:
                 exif_metadata["GPS"] = gps_exif_metadata
                 logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
