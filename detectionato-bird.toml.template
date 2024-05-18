@@ -1,0 +1,9 @@
+[detectionator]
+burst = 4
+autofocus-speed = "fast"
+gap = 0
+label = "~/Projects/detectionator/models/coco_labels.txt"
+log-level = "info"
+match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
+model = "~/Projects/detectionator/models/mobilenet_v2.tflite"
+output = "~/Pictures"
