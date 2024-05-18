@@ -13,6 +13,11 @@ autofocus-speed = "fast"
 # Don't use a gap after a successful detection but start searching again immediately.
 gap = 0
 
+# Use a lower resolution for faster processing at the cost of being able to detect objects further away.
+# The default is 1/8 of the full resolution, 576x324, which is a pretty good for fairly close up, fast-moving objects.
+# low-resolution-width = 576
+# low-resolution-height = 324
+
 # Below are standard options.
 label = "~/Projects/detectionator/models/coco_labels.txt"
 log-level = "info"
