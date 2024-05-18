@@ -1,0 +1,21 @@
+# This config template is tweaked for capturing fast-moving creatures, such as birds.
+# Note that without global shutter, there can be distortions in the image when the creature is moving quickly.
+# Rolling shutter also makes it more diffult to successfully detect fast-moving objects.
+[detectionator]
+
+# Capture several photographs upon a successful detection.
+# Re-running the detection algorithm before taking another photograph may lead to a considerable delay before another picture.
+burst = 4
+
+# Focus the lens as quickly as possible.
+autofocus-speed = "fast"
+
+# Don't use a gap after a successful detection but start searching again immediately.
+gap = 0
+
+# Below are standard options.
+label = "~/Projects/detectionator/models/coco_labels.txt"
+log-level = "info"
+match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
+model = "~/Projects/detectionator/models/mobilenet_v2.tflite"
+output = "~/Pictures"
