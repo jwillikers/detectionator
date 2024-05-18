@@ -210,6 +210,11 @@ def main():
         config_file_parser_class=configargparse.TomlConfigParser(["detectionator"]),
     )
     parser.add_argument(
+        "--autofocus-speed",
+        help="The speed with which to autofocus the lens. Either 'normal' or 'fast'.",
+        default="fast",
+    )
+    parser.add_argument(
         "--burst",
         help="The number of pictures to take after a successful detection.",
         default=3,
@@ -367,7 +372,9 @@ def main():
                     # "AfMode": controls.AfModeEnum.Continuous,
                     "AfMode": controls.AfModeEnum.Auto,
                     "AfMetering": controls.AfMeteringEnum.Windows,
-                    "AfSpeed": controls.AfSpeedEnum.Fast,
+                    "AfSpeed": controls.AfSpeedEnum.Fast
+                    if args.autofocus_speed == "fast"
+                    else controls.AfSpeedEnum.Normal,
                     "AfRange": controls.AfRangeEnum.Full,
                 }
             )
