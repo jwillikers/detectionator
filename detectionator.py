@@ -420,7 +420,7 @@ def main():
         if args.startup_capture:
             capture_sample()
 
-        gps_exif_metadata = None
+        gps_exif_metadata = get_gps_exif_metadata(gps_session)
 
         while True:
             image = picam2.capture_array("lores")
