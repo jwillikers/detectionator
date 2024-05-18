@@ -56,6 +56,7 @@ The GPS HAT requires soldering on a GPIO header.
 * https://www.adafruit.com/product/4279[Adafruit Ultimate GPS GNSS with USB - 99 channel w/10 Hz updates]
 * https://www.adafruit.com/product/2324[Adafruit Ultimate GPS HAT for Raspberry Pi]
 * A CR1220 Battery for the RTC.
+// todo Also add battery for the on-board RTC?
 * https://shop.pimoroni.com/products/nvme-base?variant=41219587178579[NVMe Base for Raspberry Pi 5].
 * A sufficiently large and performant M.2 NVMe SSD.
 I prefer the SK hynix Gold P31 for lower-power and heat situations.
@@ -81,6 +82,7 @@ This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
 . Follow the instructions to configure the storage service and autoupload {systemd} units in the {AutoUpload} README.
 . Create `detectionator` user account.
 // todo
+// Add user to groups video and render
 . Install {just} by following the instructions in the https://github.com/casey/just?tab=readme-ov-file#installation[installation section].
 This will automatically upload photos in the `~/Pictures` directory.
 The commands to enable the units should look similar to the following.
