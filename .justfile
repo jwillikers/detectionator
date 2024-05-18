@@ -21,6 +21,7 @@ init:
     if [ "$distro" = "debian" ]; then
         sudo apt-get --yes install chrony firewalld gpsd gpsd-clients libatlas-base-dev pps-tools python3-dev python3-gps python3-picamera2 python3-venv
     fi
+    # todo will socket start gpsd automatically?
     sudo systemctl enable --now chrony gpsd
     [ -d venv ] || python -m venv --system-site-packages venv
     venv/bin/python -m pip install --requirement requirements.txt
