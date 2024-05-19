@@ -198,6 +198,7 @@ Use the _user_ unit, for Immich since it is running a container.
 +
 Immich::
 +
+// todo Fix this command to actually work.
 [,sh]
 ----
 sudo -H -u detectionator bash -c 'systemctl --user enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).timer'
