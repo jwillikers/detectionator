@@ -54,6 +54,7 @@ install-system: init
     sudo -H -u detectionator bash -c '[ -d /home/detectionator/venv ] || python -m venv --system-site-packages /home/detectionator/venv'
     sudo -H -u detectionator bash -c '/home/detectionator/venv/bin/python -m pip install --requirement requirements.txt'
     sudo systemctl enable detectionator.service
+    sudo systemctl restart detectionator.service
 
 install-user: init
     [ -d venv ] || python -m venv --system-site-packages venv
@@ -64,7 +65,8 @@ install-user: init
     mkdir --parents {{ config_directory() }}/systemd/user
     ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload
-    systemctl --user enable --now detectionator.service
+    systemctl --user enable detectionator.service
+    systemctl --user restart detectionator.service
 
 alias l := lint
 
