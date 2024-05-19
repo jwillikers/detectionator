@@ -74,8 +74,6 @@ Use a drill to widen the cutout towards the edge of the board to allow the flex 
 
 == Install
 
-// todo unattended upgrades
-
 . Install the 64-bit full version of https://www.raspberrypi.com/software/[Raspberry Pi OS] to a microSD card.
 This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
 . Insert the microSD card into the Raspberry Pi.
