@@ -1,0 +1,28 @@
+# This config template is tweaked for capturing slower-moving creatures at further distances.
+[detectionator]
+burst = 1
+
+# Allow more time to focus the lens.
+autofocus-speed = "normal"
+
+# Wait for 3 seconds after a successful detection before continuing object detection again.
+# This should help to reduce the number of photographs.
+gap = 2
+
+# Camera Module 3 has a full resolution of 4608x2592.
+# Use a higher resolution for the low resolution stream to detect objects further away at the cost of increased processing time.
+# Use half of the full resolution here, 2304x1296.
+low-resolution-width = 2304
+low-resolution-height = 1296
+
+# One quarter of the full resolution is also a good option, which equals 1152x648.
+#
+# low-resolution-width = 1152
+# low-resolution-height = 648
+
+# Below are standard options.
+label = "/usr/local/share/detectionator/models/coco_labels.txt"
+log-level = "info"
+match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
+model = "/usr/local/share/detectionator/models/mobilenet_v2.tflite"
+output = "~/Pictures"

@@ -39,10 +39,10 @@ alias install := install-system
 
 install-system: init
     sudo mkdir --parents /etc/security/limits.d
-    sudo cp security/limits.d/99-detectionator.conf /etc/security/limits.d
+    sudo cp etc/security/limits.d/99-detectionator.conf /etc/security/limits.d
     sudo chown --recursive root:root /etc/security/limits.d
     sudo mkdir --parents /etc/systemd/system
-    sudo cp systemd/system/* /etc/systemd/system/
+    sudo cp etc/systemd/system/* /etc/systemd/system/
     sudo chown --recursive root:root /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo cp detectionator.py /usr/local/bin/detectionator.py
@@ -50,7 +50,7 @@ install-system: init
     sudo cp exif_utils.py /usr/local/bin/exif_utils.py
     sudo chown root:root /usr/local/bin/exif_utils.py
     sudo mkdir --parents /usr/local/etc/detectionator/
-    sudo cp config/fast-config.toml /usr/local/etc/detectionator/config.toml
+    sudo cp config/fast-and-close-config.toml /usr/local/etc/detectionator/config.toml
     sudo chown --recursive root:root /usr/local/etc/detectionator
     sudo mkdir --parents /usr/local/share/detectionator/
     sudo cp --recursive models /usr/local/share/detectionator/models
@@ -63,11 +63,10 @@ install-system: init
 install-user: init
     [ -d venv ] || python -m venv --system-site-packages venv
     venv/bin/python -m pip install --requirement requirements.txt
-    ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     mkdir --parents {{ config_directory() }}/detectionator
-    cp detectionator.toml.template {{ config_directory() }}/detectionator/config.toml
+    cp config/fast-and-close-config.toml {{ config_directory() }}/detectionator/config.toml
     mkdir --parents {{ config_directory() }}/systemd/user
-    ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
+    ln --force --relative --symbolic etc/systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload
     systemctl --user enable detectionator.service
     systemctl --user restart detectionator.service

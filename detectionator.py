@@ -315,6 +315,7 @@ def main():
     # Initialize the GPS
     gps_session = gps.gps(mode=gps.WATCH_ENABLE)
 
+    # Camera Module 3 has a full resolution of 4608x2592.
     # A scale of 8, really 1/8, results in a resolution of 576x324 which is still pretty high resolution for close-up detections.
     # A scale of 12, really 1/12, results in a resolution of 384x216.
     # A scale of 16, really 1/16, results in a resolution of 288x162.

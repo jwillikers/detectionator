@@ -24,6 +24,7 @@
         "GPIO",
         "gpsd",
         "gpsdctl",
+        "grayscale",
         "gstreamer",
         "hynix",
         "Hyperpixel",

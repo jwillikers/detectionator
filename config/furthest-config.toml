@@ -1,0 +1,20 @@
+# This config template is tweaked for capturing creatures as far away as possible.
+[detectionator]
+burst = 1
+
+# Allow more time to focus the lens.
+autofocus-speed = "normal"
+
+gap = 0
+
+# Camera Module 3 has a full resolution of 4608x2592.
+# Use the full resolution to detect objects as far away as possible.
+low-resolution-width = 4608
+low-resolution-height = 2592
+
+# Below are standard options.
+label = "/usr/local/share/detectionator/models/coco_labels.txt"
+log-level = "info"
+match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
+model = "/usr/local/share/detectionator/models/mobilenet_v2.tflite"
+output = "~/Pictures"

@@ -1,0 +1,6 @@
+[detectionator]
+burst = 1
+label = "/usr/local/share/detectionator/models/coco_labels.txt"
+match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
+model = "/usr/local/share/detectionator/models/mobilenet_v2.tflite"
+output = "~/Pictures"
