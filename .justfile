@@ -46,6 +46,8 @@ install-system: init
     sudo chown --recursive root:root /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo mkdir --parents /etc/detectionator/
+    sudo cp detectionator.py /usr/bin/detectionator.py
+    sudo chown root:root /usr/bin/detectionator.py
     sudo cp config/fast-config.toml /etc/detectionator/config.toml
     sudo cp models/* /etc/detectionator/models
     sudo chown --recursive root:root /etc/detectionator
