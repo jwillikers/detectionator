@@ -32,6 +32,7 @@
         "Imager",
         "Immich",
         "inplace",
+        "journalctl",
         "justfile",
         "jwillikers",
         "keyrings",
