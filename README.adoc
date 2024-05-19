@@ -432,6 +432,7 @@ I might try to use a dual-camera system in the future which could take advantage
 
 == todo
 
+- [] Add better configuration parameter checking, particularly around enum type options.
 - [] Add a configuration parameter to configure the focus range.
 This could help speed up autofocus.
 - [] Add a configuration parameter to configure the rest time in-between runs of the detection algorithm when there was no detection.
