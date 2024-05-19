@@ -19,8 +19,8 @@ gap = 0
 # low-resolution-height = 324
 
 # Below are standard options.
-label = "/usr/local/etc/detectionator/models/coco_labels.txt"
+label = "/usr/local/share/detectionator/models/coco_labels.txt"
 log-level = "info"
 match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
-model = "/usr/local/etc/detectionator/models/mobilenet_v2.tflite"
+model = "/usr/local/share/detectionator/models/mobilenet_v2.tflite"
 output = "~/Pictures"

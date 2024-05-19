@@ -49,8 +49,10 @@ install-system: init
     sudo mkdir --parents /usr/local/etc/detectionator/
     sudo chown root:root /usr/local/bin/detectionator.py
     sudo cp config/fast-config.toml /usr/local/etc/detectionator/config.toml
-    sudo cp --recursive models /usr/local/etc/detectionator/models
     sudo chown --recursive root:root /usr/local/etc/detectionator
+    sudo mkdir --parents /usr/local/share/detectionator/
+    sudo cp --recursive models /usr/local/share/detectionator/models
+    sudo chown --recursive root:root /usr/local/share/detectionator
     sudo -H -u detectionator bash -c '[ -d /home/detectionator/venv ] || python -m venv --system-site-packages /home/detectionator/venv'
     sudo -H -u detectionator bash -c '/home/detectionator/venv/bin/python -m pip install --requirement requirements.txt'
     sudo systemctl enable detectionator.service
