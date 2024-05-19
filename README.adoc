@@ -196,13 +196,12 @@ set -Ux XDG_RUNTIME_DIR /run/user/(id -u)
 This should automatically upload photos in the `/home/detectionator/Pictures` directory.
 The commands to enable the units should look similar to the following.
 Use the _user_ unit, for Immich since it is running a container.
-The following command should be run as the `detectionator` user.
 +
 Immich::
 +
 [,sh]
 ----
-systemctl --user enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).timer
+sudo -H -u detectionator bash -c 'systemctl --user enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).timer'
 ----
 
 Rclone::
