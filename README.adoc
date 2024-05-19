@@ -101,7 +101,7 @@ sudo useradd \
   --comment "Primary account taking photographs with object-detection" \
   --create-home \
   --gid detectionator \
-  --groups systemd-journal \
+  --groups render,systemd-journal,video \
   --shell /usr/sbin/nologin \
   --system \
   --uid 818 \
