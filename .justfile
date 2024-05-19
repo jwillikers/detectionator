@@ -80,7 +80,6 @@ lint:
 alias r := run
 
 run model="models/mobilenet_v2.tflite" label="models/coco_labels.txt" output=(home_directory() / "Pictures") *args="":
-    sudo -H -u detectionator bash -c 'cd; bash'
     venv/bin/python detectionator.py \
         --label {{ label }} \
         --model {{ model }} \
@@ -99,7 +98,6 @@ alias u := update
 alias up := update
 
 update:
-    sudo -H -u detectionator bash -c 'cd; bash'
     venv/bin/pip-compile \
         --allow-unsafe \
         --generate-hashes \
