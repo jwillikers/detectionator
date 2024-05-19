@@ -46,8 +46,10 @@ install-system: init
     sudo chown --recursive root:root /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo cp detectionator.py /usr/local/bin/detectionator.py
-    sudo mkdir --parents /usr/local/etc/detectionator/
     sudo chown root:root /usr/local/bin/detectionator.py
+    sudo cp exif_utils.py /usr/local/bin/exif_utils.py
+    sudo chown root:root /usr/local/bin/exif_utils.py
+    sudo mkdir --parents /usr/local/etc/detectionator/
     sudo cp config/fast-config.toml /usr/local/etc/detectionator/config.toml
     sudo chown --recursive root:root /usr/local/etc/detectionator
     sudo mkdir --parents /usr/local/share/detectionator/
