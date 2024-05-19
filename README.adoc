@@ -74,32 +74,142 @@ Use a drill to widen the cutout towards the edge of the board to allow the flex 
 
 == Install
 
+// todo unattended upgrades
+
 . Install the 64-bit full version of https://www.raspberrypi.com/software/[Raspberry Pi OS] to a microSD card.
-The configuration files assume the primary user is `core`, which can be configured when using Raspberry Pi Imager to write the image.
 This project has been tested with Raspberry Pi OS 5 based on Debian Bookworm.
 . Insert the microSD card into the Raspberry Pi.
 . Boot the Raspberry Pi.
-. Follow the instructions to configure the storage service and autoupload {systemd} units in the {AutoUpload} README.
-. Create `detectionator` user account.
-// todo
-// Add user to groups video and render
+. Create the `detectionator` user account.
+The detectionator service is intended to be run under a dedicated user account.
+Since the autoupload mechanism for Immich CLI relies on running containers, the instructions here will configure this user account to run containers.
+
+.. Create a `detectionator` system group.
++
+[,sh]
+----
+sudo groupadd --gid 818 --system detectionator
+----
+
+.. Create a primary user account named `detectionator`.
++
+--
+[,sh]
+----
+sudo useradd \
+  --add-subids-for-system \
+  --comment "Primary account taking photographs with object-detection" \
+  --create-home \
+  --gid detectionator \
+  --groups systemd-journal \
+  --shell /usr/sbin/nologin \
+  --system \
+  --uid 818 \
+  detectionator
+----
+
+[TIP]
+====
+The `--btrfs-subvolume-home` flag can be used to create the user's home directory on a separate Btrfs subvolume.
+====
+--
+
+.. Verify that the new `detectionator` user has entries in `/etc/subuid` and `/etc/subgid`.
+If for some reason, there are no subuid and subgid ranges for the user, follow these steps.
+I don't know why this happens, but it does sometimes.
++
+[NOTE]
+====
+These commands use the fish shell because I can never remember how to math in Bash.footnote:[Or anything else in Bash for that matter.]
+====
+
+.. Calculate the first value for the next subuid allotment.
++
+--
+If `/etc/subuid` is empty, use 100,000 as the initial value.
+
+[,sh]
+----
+set new_subuid 100000
+----
+
+Otherwise, use the following function to calculate the next available subuid range.
+
+[,sh]
+----
+set new_subuid (math (tail -1 /etc/subuid | awk -F ":" '{print $2}') + 65536)
+----
+--
+
+.. Calculate the first value for the next subuid allotment.
++
+--
+If `/etc/subgid` is empty, use 100,000 as the initial value.
+
+[,sh]
+----
+set new_subgid 100000
+----
+
+Otherwise, use the following function to calculate the next available subgid range.
+
+[,sh]
+----
+set new_subgid (math (tail -1 /etc/subgid | awk -F ":" '{print $2}') + 65536)
+----
+--
+
+.. Configure the `core` user with the calculated subuid and subgid ranges.
++
+[,sh]
+----
+sudo usermod \
+  --add-subuids $new_subuid-(math $new_subuid + 65535) \
+  --add-subgids $new_subgid-(math $new_subgid + 65535) \
+  core
+----
+
+.. Automatically start the core user's session.
++
+[,sh]
+----
+sudo loginctl enable-linger detectionator
+----
+
+.. Open a shell as the `detectionator` user with the following command.
+I prefer the fish shell, so I use that here, but substitute Bash, ZSH, etc. per your preference.
++
+[,sh]
+----
+sudo -H -u detectionator fish -c 'cd; fish'
+----
+
+.. Configure the `XDG_RUNTIME_DIR` environment variable for the user in order for sockets to be found correctly.
++
+[,sh]
+----
+set -Ux XDG_RUNTIME_DIR /run/user/(id -u)
+----
+
 . Install {just} by following the instructions in the https://github.com/casey/just?tab=readme-ov-file#installation[installation section].
-This will automatically upload photos in the `~/Pictures` directory.
+. Follow the instructions to configure the storage service and autoupload {systemd} units in the {AutoUpload} README.
+This should automatically upload photos in the `/home/detectionator/Pictures` directory.
 The commands to enable the units should look similar to the following.
-Use the _user_ unit, for Immich.
+Use the _user_ unit, for Immich since it is running a container.
+The following command should be run as the `detectionator` user.
 +
 Immich::
 +
 [,sh]
 ----
-systemctl --user enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).path
+systemctl --user enable --now autoupload-immich@$(systemd-escape --path ~/Pictures).timer
 ----
 
 Rclone::
 +
 [,sh]
 ----
-sudo systemctl enable --now autoupload-rclone@$(systemd-escape --path ~/Pictures).path
+sudo systemctl enable --now autoupload-rclone@$(systemd-escape --path /home/detectionator/Pictures).timer
 ----
 
 . For security, be sure to disable password-based SSH authentication.
@@ -237,6 +347,9 @@ Send the application the `SIGUSR1` signal to capture sample photographs for both
 kill --signal SIGUSR1 $(pgrep python)
 ----
 ====
+
+. Set up unattended upgrades to automatically update the system.
+I document how to do this in my blog post https://www.jwillikers.com/unattended-upgrades[Unattended Upgrades].
 
 == HDR
 

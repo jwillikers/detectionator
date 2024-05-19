@@ -23,8 +23,6 @@ init:
     fi
     # todo will socket start gpsd automatically?
     sudo systemctl enable --now chrony gpsd
-    [ -d venv ] || python -m venv --system-site-packages venv
-    venv/bin/python -m pip install --requirement requirements.txt
 
 init-dev: && sync
     #!/usr/bin/env bash
@@ -47,13 +45,17 @@ install-system: init
     sudo cp systemd/system/* /etc/systemd/system/
     sudo chown --recursive root:root /etc/systemd/system/
     sudo systemctl daemon-reload
-    sudo chown --recursive root:root /etc/detectionator
     sudo mkdir --parents /etc/detectionator/
-    sudo cp detectionator.toml.template /etc//detectionator/config.toml
+    sudo cp config/fast-config.toml /etc/detectionator/config.toml
+    sudo cp models/* /etc/detectionator/models
+    sudo chown --recursive root:root /etc/detectionator
+    sudo -H -u detectionator bash -c '[ -d /home/detectionator/venv ] || python -m venv --system-site-packages /home/detectionator/venv'
+    sudo -H -u detectionator bash -c '/home/detectionator/venv/bin/python -m pip install --requirement requirements.txt'
     sudo systemctl enable detectionator.service
-    sudo systemctl reboot
 
 install-user: init
+    [ -d venv ] || python -m venv --system-site-packages venv
+    venv/bin/python -m pip install --requirement requirements.txt
     ln --force --relative --symbolic systemd/user/* {{ config_directory() }}/systemd/user/
     mkdir --parents {{ config_directory() }}/detectionator
     cp detectionator.toml.template {{ config_directory() }}/detectionator/config.toml
@@ -71,6 +73,7 @@ lint:
 alias r := run
 
 run model="models/mobilenet_v2.tflite" label="models/coco_labels.txt" output=(home_directory() / "Pictures") *args="":
+    sudo -H -u detectionator bash -c 'cd; bash'
     venv/bin/python detectionator.py \
         --label {{ label }} \
         --model {{ model }} \
@@ -89,6 +92,7 @@ alias u := update
 alias up := update
 
 update:
+    sudo -H -u detectionator bash -c 'cd; bash'
     venv/bin/pip-compile \
         --allow-unsafe \
         --generate-hashes \
