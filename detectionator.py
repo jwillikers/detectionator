@@ -141,24 +141,22 @@ async def update_gps_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: dict):
             altitude = gpsd.fix.altHAE
             speed = gpsd.fix.speed
 
-            gps_exif_metadata = {
-                piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
-                    abs(altitude if gps.isfinite(altitude) else 0)
-                ),
-                piexif.GPSIFD.GPSAltitudeRef: (
-                    1 if gps.isfinite(altitude) and altitude <= 0 else 0
-                ),
-                piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
-                piexif.GPSIFD.GPSSatellites: str(gpsd.satellites_used),
-                piexif.GPSIFD.GPSSpeed: (
-                    number_to_exif_rational(speed * 3.6)
-                    if gps.isfinite(speed)
-                    # Convert m/sec to km/hour
-                    else number_to_exif_rational(0)
-                ),
-                piexif.GPSIFD.GPSSpeedRef: "K",
-                piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
-            }
+            gps_exif_metadata[piexif.GPSIFD.GPSAltitude] = number_to_exif_rational(
+                abs(altitude if gps.isfinite(altitude) else 0)
+            )
+            gps_exif_metadata[piexif.GPSIFD.GPSAltitudeRef] = (
+                1 if gps.isfinite(altitude) and altitude <= 0 else 0
+            )
+            gps_exif_metadata[piexif.GPSIFD.GPSProcessingMethod] = "GPS".encode("ASCII")
+            gps_exif_metadata[piexif.GPSIFD.GPSSatellites] = str(gpsd.satellites_used)
+            gps_exif_metadata[piexif.GPSIFD.GPSSpeed] = (
+                number_to_exif_rational(speed * 3.6)
+                if gps.isfinite(speed)
+                # Convert m/sec to km/hour
+                else number_to_exif_rational(0)
+            )
+            gps_exif_metadata[piexif.GPSIFD.GPSSpeedRef] = "K"
+            gps_exif_metadata[piexif.GPSIFD.GPSVersionID] = (2, 3, 0, 0)
 
             if gps.isfinite(gpsd.fix.latitude):
                 latitude = degrees_decimal_to_degrees_minutes_seconds(gpsd.fix.latitude)
