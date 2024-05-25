@@ -359,9 +359,6 @@ def main():
         alive_opts={"rx_timeout": 5},
     )
 
-    loop = asyncio.events.new_event_loop()
-    asyncio.events.set_event_loop(loop)
-
     # Camera Module 3 has a full resolution of 4608x2592.
     # A scale of 8, really 1/8, results in a resolution of 576x324 which is still pretty high resolution for close-up detections.
     # A scale of 12, really 1/12, results in a resolution of 384x216.
