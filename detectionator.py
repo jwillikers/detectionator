@@ -132,7 +132,7 @@ def get_gps_exif_metadata(session: gps.aiogps.aiogps):
 async def get_gps_exif_metadata_async(session: gps.aiogps.aiogps) -> dict:
     try:
         while True:
-            if session.read() != 0:
+            if await session.read() != 0:
                 logger.warning("GPS session read failed")
                 return {}
 
