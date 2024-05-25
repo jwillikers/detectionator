@@ -28,6 +28,7 @@ from exif_utils import (
 
 logger = logging.getLogger(__name__)
 
+global gps_exif_metadata
 gps_exif_metadata = {}
 
 
