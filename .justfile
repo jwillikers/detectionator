@@ -1,5 +1,7 @@
 default: run
 
+export PYTHONPATH := "${PYTHONPATH}:/usr/local/lib/python3/dist-packages"
+
 alias f := format
 alias fmt := format
 
@@ -13,16 +15,22 @@ hdr device="/dev/v4l-subdev2" action="enable":
     v4l2-ctl --set-ctrl wide_dynamic_range={{ if action == "enable" { "1" } else { "0" } }} --device {{ device }}
     systemctl --user start detectionator.service || true
 
-init:
+init gpsd_version="release-3.25":
     #!/usr/bin/env bash
     set -euxo pipefail
     sudo cp etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules /etc/udev/rules.d/99-adafruit-ultimate-gps-usb.rules
     distro=$(awk -F= '$1=="ID" { print $2 ;}' /etc/os-release)
     if [ "$distro" = "debian" ]; then
-        sudo apt-get --yes install chrony firewalld gpsd gpsd-clients libatlas-base-dev pps-tools python3-dev python3-gps python3-picamera2 python3-venv unattended-upgrades
+        sudo apt-get --yes install chrony firewalld libatlas-base-dev pps-tools python3-dev python3-picamera2 python3-venv unattended-upgrades \
+            build-essential manpages-dev pkg-config git scons libncurses-dev python3-serial libdbus-1-dev python3-matplotlib
     fi
+    git clone https://gitlab.com/gpsd/gpsd.git
+    cd gpsd
+    git switch --detach "{{ gpsd_version }}"
+    scons -c && scons && scons check && scons install
+    sudo cp etc/profile.d/pythonpath.sh /etc/profile.d
     # todo will socket start gpsd automatically?
-    sudo systemctl enable --now chrony gpsd
+    # sudo systemctl enable --now gpsd
 
 init-dev: && sync
     #!/usr/bin/env bash
