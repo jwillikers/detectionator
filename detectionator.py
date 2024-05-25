@@ -141,7 +141,7 @@ async def update_gps_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: dict):
             altitude = gpsd.fix.altHAE
             speed = gpsd.fix.speed
 
-            gps_ifd = {
+            gps_exif_metadata = {
                 piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
                     abs(altitude if gps.isfinite(altitude) else 0)
                 ),
@@ -162,37 +162,40 @@ async def update_gps_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: dict):
 
             if gps.isfinite(gpsd.fix.latitude):
                 latitude = degrees_decimal_to_degrees_minutes_seconds(gpsd.fix.latitude)
-                gps_ifd[piexif.GPSIFD.GPSLatitude] = (
+                gps_exif_metadata[piexif.GPSIFD.GPSLatitude] = (
                     number_to_exif_rational(abs(latitude[0])),
                     number_to_exif_rational(abs(latitude[1])),
                     number_to_exif_rational(abs(latitude[2])),
                 )
-                gps_ifd[piexif.GPSIFD.GPSLatitudeRef] = "N" if latitude[0] > 0 else "S"
+                gps_exif_metadata[piexif.GPSIFD.GPSLatitudeRef] = (
+                    "N" if latitude[0] > 0 else "S"
+                )
 
             if gps.isfinite(gpsd.fix.longitude):
                 longitude = degrees_decimal_to_degrees_minutes_seconds(
                     gpsd.fix.longitude
                 )
-                gps_ifd[piexif.GPSIFD.GPSLongitude] = (
+                gps_exif_metadata[piexif.GPSIFD.GPSLongitude] = (
                     number_to_exif_rational(abs(longitude[0])),
                     number_to_exif_rational(abs(longitude[1])),
                     number_to_exif_rational(abs(longitude[2])),
                 )
-                gps_ifd[piexif.GPSIFD.GPSLongitudeRef] = (
+                gps_exif_metadata[piexif.GPSIFD.GPSLongitudeRef] = (
                     "E" if longitude[0] > 0 else "W"
                 )
 
-            gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
+            gps_exif_metadata[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
 
             fix_time = parser.parse(str(gpsd.fix.time))
-            gps_ifd[piexif.GPSIFD.GPSDateStamp] = fix_time.strftime("%Y:%m:%d")
-            gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
+            gps_exif_metadata[piexif.GPSIFD.GPSDateStamp] = fix_time.strftime(
+                "%Y:%m:%d"
+            )
+            gps_exif_metadata[piexif.GPSIFD.GPSTimeStamp] = (
                 number_to_exif_rational(fix_time.hour),
                 number_to_exif_rational(fix_time.minute),
                 number_to_exif_rational(fix_time.second),
             )
             logger.debug("Updated EXIF GPS data.")
-            gps_exif_metadata = gps_ifd  # noqa: F841
             await asyncio.sleep(600)
     except asyncio.IncompleteReadError:
         logger.info("Connection closed by server")
