@@ -31,7 +31,7 @@ init gpsd_version="release-3.25":
     git -C "{{ home_directory() }}/Projects/gpsd" fetch --tags
     git -C "{{ home_directory() }}/Projects/gpsd" switch --detach "{{ gpsd_version }}"
     (cd "{{ home_directory() }}/Projects/gpsd" && scons -c && scons && scons check && sudo scons install)
-    sudo cp "{{ home_directory() }}/Projects/gpsd/builtmp/systemd/gpsdctl@.service" "{{ home_directory() }}/Projects/gpsd/builtmp/systemd/gpsd.service" "{{ home_directory() }}/Projects/gpsd/builtmp/systemd/gpsd.socket" /etc/systemd/system
+    sudo cp "{{ home_directory() }}/Projects/gpsd/buildtmp/systemd/gpsdctl@.service" "{{ home_directory() }}/Projects/gpsd/buildtmp/systemd/gpsd.service" "{{ home_directory() }}/Projects/gpsd/buildtmp/systemd/gpsd.socket" /etc/systemd/system
     sudo cp "{{ home_directory() }}/Projects/gpsd/contrib/apparmor/usr.sbin.gpsd" /etc/apparmor.d/usr.local.sbin.gpsd
     sudo sed --in-place 's|/usr/sbin/gpsd|/usr/local/sbin/gpsd|g' /etc/apparmor.d/usr.local.sbin.gpsd
     sudo cp etc/profile.d/pythonpath.sh /etc/profile.d
