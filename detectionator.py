@@ -355,7 +355,7 @@ def main():
     gps_session = gps.aiogps.aiogps(
         connection_args={"host": "127.0.0.1", "port": 2947},
         connection_timeout=5,
-        # reconnect=0,  # do not reconnect, raise errors
+        reconnect=0,  # do not reconnect, raise errors
         alive_opts={"rx_timeout": 5},
     )
 
