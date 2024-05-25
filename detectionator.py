@@ -28,9 +28,6 @@ from exif_utils import (
 
 logger = logging.getLogger(__name__)
 
-global gps_exif_metadata
-gps_exif_metadata = {}
-
 
 def read_label_file(file_path):
     with open(file_path, "r", encoding="UTF-8") as f:
@@ -122,7 +119,7 @@ def scale(coord, scaler_crop_maximum, lores):
     )
 
 
-async def update_gps_metadata(gpsd: gps.aiogps.aiogps):
+async def update_gps_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: dict):
     try:
         while True:
             await gpsd.read()
@@ -219,6 +216,7 @@ async def detect_and_capture(
     model,
     labels,
     match,
+    gps_exif_metadata: dict,
     scaler_crop_maximum,
     low_resolution_width,
     low_resolution_height,
@@ -510,8 +508,10 @@ async def main():
 
         signal.signal(signal.SIGINT, interrupt_signal_handler)
 
+        gps_exif_metadata = {}
+
         # Take a sample photograph with both high and low resolution images for reference.
-        def capture_sample():
+        def capture_sample(gps_exif_metadata):
             timestamp = int(time.time())
 
             focus_cycle_job = None
@@ -540,12 +540,12 @@ async def main():
             )
 
         def capture_sample_signal_handler(_sig, _frame):
-            capture_sample()
+            capture_sample(gps_exif_metadata)
 
         signal.signal(signal.SIGUSR1, capture_sample_signal_handler)
 
         if args.startup_capture:
-            capture_sample()
+            capture_sample(gps_exif_metadata)
 
         try:
             async with gps.aiogps.aiogps(
@@ -558,12 +558,13 @@ async def main():
                     systemd_notifier.notify("READY=1")
                     systemd_notifier.notify(f"STATUS=Looking for {match}")
                 await asyncio.gather(
-                    update_gps_metadata(gpsd),
+                    update_gps_metadata(gpsd, gps_exif_metadata),
                     detect_and_capture(
                         picam2=picam2,
                         model=args.model,
                         labels=labels,
                         match=match,
+                        gps_exif_metadata=gps_exif_metadata,
                         scaler_crop_maximum=scaler_crop_maximum,
                         low_resolution_width=low_resolution_width,
                         low_resolution_height=low_resolution_height,
