@@ -211,6 +211,12 @@ async def get_gps_exif_metadata_async() -> dict:
                 )
                 logger.debug("Updated EXIF GPS data.")
                 return gps_ifd
+    except asyncio.IncompleteReadError:
+        logging.info("Connection closed by server")
+    except asyncio.TimeoutError:
+        logging.error("Timeout waiting for gpsd to respond")
+    except Exception as exc:  # pylint: disable=W0703
+        logging.error(f"Error: {exc}")
     except asyncio.CancelledError:
         return {}
 
