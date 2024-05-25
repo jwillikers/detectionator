@@ -150,6 +150,10 @@ python-dateutil==2.9.0.post0 \
     --hash=sha256:5d23f9d7e398684c7dac22b46a93fb71de568cfdcd004512f7072819e41ef54c \
     --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
     # via -r requirements.in
+sdnotify==0.3.2 \
+    --hash=sha256:73977fc746b36cc41184dd43c3fe81323e7b8b06c2bb0826c4f59a20c56bb9f1 \
+    --hash=sha256:ddd91fa2f0621f7d154cd0d07e182997879b358cb46768885054b7a505acaef8
+    # via -r requirements.in
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254

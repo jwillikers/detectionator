@@ -17,6 +17,7 @@ from libcamera import controls
 import numpy as np
 from picamera2 import Picamera2
 import piexif
+import sdnotify
 import tflite_runtime.interpreter as tflite
 
 from exif_utils import (
@@ -271,6 +272,11 @@ def main():
         help="Take sample photographs when starting the program.",
         action=argparse.BooleanOptionalAction,
     )
+    parser.add_argument(
+        "--systemd-notify",
+        help="Enable systemd-notify support for running as a systemd service.",
+        action=argparse.BooleanOptionalAction,
+    )
     args = parser.parse_args()
 
     numeric_log_level = getattr(logging, args.log_level.upper(), None)
@@ -447,6 +453,12 @@ def main():
             capture_sample()
 
         gps_exif_metadata = get_gps_exif_metadata(gps_session)
+
+        systemd_notifier = None
+        if args.systemd_notify:
+            systemd_notifier = sdnotify.SystemdNotifier()
+            systemd_notifier.notify("READY=1")
+            systemd_notifier.notify(f"STATUS=Looking for {match}")
 
         while True:
             image = picam2.capture_array("lores")

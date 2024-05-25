@@ -6,4 +6,5 @@ piexif
 pillow
 python-dateutil
 #picamera2[gui]
+sdnotify
 tflite-runtime

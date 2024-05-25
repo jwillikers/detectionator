@@ -3,9 +3,11 @@ Description=The Detectionator for capturing photographs using object detection
 After=default.target
 
 [Service]
-Type=simple
+Type=Notify
+NotifyAccess=main
+Environment=PYTHONUNBUFFERED=true
 ExecStartPre=/bin/sleep 1
-ExecStart=%h/Projects/detectionator/venv/bin/python %h/Projects/detectionator/detectionator.py
+ExecStart=%h/Projects/detectionator/venv/bin/python %h/Projects/detectionator/detectionator.py --systemd-notify
 Restart=on-failure
 RestartSec=10
 KillMode=process
