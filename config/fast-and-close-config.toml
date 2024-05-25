@@ -7,6 +7,11 @@
 # Re-running the detection algorithm before taking another photograph may lead to a considerable delay before another picture.
 burst = 4
 
+# Focus the lens on the closest part of the range.
+# todo Test how well the Macro range works.
+# autofocus-range = "macro"
+autofocus-range = "full"
+
 # Focus the lens as quickly as possible.
 autofocus-speed = "fast"
 

@@ -1,5 +1,7 @@
 [detectionator]
 burst = 1
+autofocus-range = "full"
+autofocus-speed = "fast"
 label = "/usr/local/share/detectionator/models/coco_labels.txt"
 match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
 model = "/usr/local/share/detectionator/models/mobilenet_v2.tflite"

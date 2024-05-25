@@ -211,6 +211,12 @@ def main():
         config_file_parser_class=configargparse.TomlConfigParser(["detectionator"]),
     )
     parser.add_argument(
+        "--autofocus-range",
+        choices=["normal", "macro", "full"],
+        help="The range of lens positions for which to attempt to autofocus.",
+        default="full",
+    )
+    parser.add_argument(
         "--autofocus-speed",
         choices=["normal", "fast"],
         help="The speed with which to autofocus the lens.",
@@ -319,6 +325,12 @@ def main():
         else controls.AfSpeedEnum.Normal,
     )
 
+    autofocus_range = controls.AfRangeEnum.Full
+    if args.autofocus_range == "normal":
+        autofocus_range = controls.AfRangeEnum.Normal
+    elif args.autofocus_range == "macro":
+        autofocus_range = controls.AfRangeEnum.Macro
+
     # Initialize the GPS
     gps_session = gps.gps(mode=gps.WATCH_ENABLE)
 
@@ -382,8 +394,7 @@ def main():
                     "AfMode": controls.AfModeEnum.Auto,
                     "AfMetering": controls.AfMeteringEnum.Windows,
                     "AfSpeed": autofocus_speed,
-                    # todo Add a config option to set the autofocus range.
-                    "AfRange": controls.AfRangeEnum.Full,
+                    "AfRange": autofocus_range,
                 }
             )
         scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]

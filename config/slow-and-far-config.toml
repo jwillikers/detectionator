@@ -2,6 +2,9 @@
 [detectionator]
 burst = 1
 
+# Don't attempt to focus on close objects.
+autofocus-range = "normal"
+
 # Allow more time to focus the lens.
 autofocus-speed = "normal"
 
