@@ -138,9 +138,9 @@ async def get_gps_exif_metadata_async() -> dict:
             alive_opts={"rx_timeout": 5},
         ) as session:
             while True:
-                # if await session.read() != 0:
-                #     logger.warning("GPS session read failed")
-                #     return {}
+                if await session.read() != 0:
+                    logger.warning("GPS session read failed")
+                    continue
 
                 if not (gps.MODE_SET & session.valid):
                     logger.debug("GPS session invalid")
