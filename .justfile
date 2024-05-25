@@ -35,6 +35,7 @@ init gpsd_version="release-3.25":
     sudo cp "{{ home_directory() }}/Projects/gpsd/contrib/apparmor/usr.sbin.gpsd" /etc/apparmor.d/usr.local.sbin.gpsd
     sudo sed --in-place 's|/usr/sbin/gpsd|/usr/local/sbin/gpsd|g' /etc/apparmor.d/usr.local.sbin.gpsd
     sudo cp etc/profile.d/pythonpath.sh /etc/profile.d
+    sudo cp etc/default/gpsd /etc/default/gpsd
     sudo systemctl enable --now chrony.service gpsd.service
 
 init-dev: && sync
