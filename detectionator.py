@@ -212,7 +212,8 @@ def main():
     )
     parser.add_argument(
         "--autofocus-speed",
-        help="The speed with which to autofocus the lens. Either 'normal' or 'fast'.",
+        choices=["normal", "fast"],
+        help="The speed with which to autofocus the lens.",
         default="fast",
     )
     parser.add_argument(
@@ -312,6 +313,12 @@ def main():
 
     logger.info(f"Will take photographs of: {match}")
 
+    autofocus_speed = (
+        controls.AfSpeedEnum.Fast
+        if args.autofocus_speed == "fast"
+        else controls.AfSpeedEnum.Normal,
+    )
+
     # Initialize the GPS
     gps_session = gps.gps(mode=gps.WATCH_ENABLE)
 
@@ -374,9 +381,7 @@ def main():
                     # "AfMode": controls.AfModeEnum.Continuous,
                     "AfMode": controls.AfModeEnum.Auto,
                     "AfMetering": controls.AfMeteringEnum.Windows,
-                    "AfSpeed": controls.AfSpeedEnum.Fast
-                    if args.autofocus_speed == "fast"
-                    else controls.AfSpeedEnum.Normal,
+                    "AfSpeed": autofocus_speed,
                     # todo Add a config option to set the autofocus range.
                     "AfRange": controls.AfRangeEnum.Full,
                 }
