@@ -124,94 +124,84 @@ def scale(coord, scaler_crop_maximum, lores):
 # Only update the GPS data every 10 minutes to reduce latency.
 # Retrieving data from the GPS can take up to one second, which is too long.
 @ttl_cache(maxsize=1, ttl=600)
-def get_gps_exif_metadata():
+def get_gps_exif_metadata(gpsd: gps.aiogps.aiogps):
     loop = asyncio.get_event_loop()
-    return loop.run_until_complete(get_gps_exif_metadata_async())
+    return loop.run_until_complete(get_gps_exif_metadata_async(gpsd))
 
 
-async def get_gps_exif_metadata_async() -> dict:
+async def get_gps_exif_metadata_async(gpsd: gps.aiogps.aiogps) -> dict:
     try:
-        async with gps.aiogps.aiogps(
-            connection_args={"host": "127.0.0.1", "port": 2947},
-            connection_timeout=5,
-            reconnect=0,  # do not reconnect, raise errors
-            alive_opts={"rx_timeout": 5},
-        ) as session:
-            while True:
-                await session.read()
-                if not (gps.PACKET_SET & session.valid):
-                    logger.warning("GPS session read failed")
-                    continue
+        while True:
+            await gpsd.read()
+            if not (gps.PACKET_SET & gpsd.valid):
+                logger.warning("Failed to receive package from gpsd")
+                continue
 
-                if not (gps.MODE_SET & session.valid):
-                    logger.debug("GPS session invalid")
-                    continue
+            if not (gps.MODE_SET & gpsd.valid):
+                logger.debug("GPS session invalid")
+                continue
 
-                fix_mode = session.fix.mode
-                if fix_mode in [0, gps.MODE_NO_FIX]:
-                    logger.warning("No GPS fix")
-                    return {}
+            fix_mode = gpsd.fix.mode
+            if fix_mode in [0, gps.MODE_NO_FIX]:
+                logger.warning("No GPS fix")
+                return {}
 
-                # if gps.ALTITUDE_SET & session.valid
-                altitude = session.fix.altHAE
-                speed = session.fix.speed
+            # if gps.ALTITUDE_SET & gpsd.valid
+            altitude = gpsd.fix.altHAE
+            speed = gpsd.fix.speed
 
-                gps_ifd = {
-                    piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
-                        abs(altitude if gps.isfinite(altitude) else 0)
-                    ),
-                    piexif.GPSIFD.GPSAltitudeRef: (
-                        1 if gps.isfinite(altitude) and altitude <= 0 else 0
-                    ),
-                    piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
-                    piexif.GPSIFD.GPSSatellites: str(session.satellites_used),
-                    piexif.GPSIFD.GPSSpeed: (
-                        number_to_exif_rational(speed * 3.6)
-                        if gps.isfinite(speed)
-                        # Convert m/sec to km/hour
-                        else number_to_exif_rational(0)
-                    ),
-                    piexif.GPSIFD.GPSSpeedRef: "K",
-                    piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
-                }
+            gps_ifd = {
+                piexif.GPSIFD.GPSAltitude: number_to_exif_rational(
+                    abs(altitude if gps.isfinite(altitude) else 0)
+                ),
+                piexif.GPSIFD.GPSAltitudeRef: (
+                    1 if gps.isfinite(altitude) and altitude <= 0 else 0
+                ),
+                piexif.GPSIFD.GPSProcessingMethod: "GPS".encode("ASCII"),
+                piexif.GPSIFD.GPSSatellites: str(gpsd.satellites_used),
+                piexif.GPSIFD.GPSSpeed: (
+                    number_to_exif_rational(speed * 3.6)
+                    if gps.isfinite(speed)
+                    # Convert m/sec to km/hour
+                    else number_to_exif_rational(0)
+                ),
+                piexif.GPSIFD.GPSSpeedRef: "K",
+                piexif.GPSIFD.GPSVersionID: (2, 3, 0, 0),
+            }
 
-                if gps.isfinite(session.fix.latitude):
-                    latitude = degrees_decimal_to_degrees_minutes_seconds(
-                        session.fix.latitude
-                    )
-                    gps_ifd[piexif.GPSIFD.GPSLatitude] = (
-                        number_to_exif_rational(abs(latitude[0])),
-                        number_to_exif_rational(abs(latitude[1])),
-                        number_to_exif_rational(abs(latitude[2])),
-                    )
-                    gps_ifd[piexif.GPSIFD.GPSLatitudeRef] = (
-                        "N" if latitude[0] > 0 else "S"
-                    )
-
-                if gps.isfinite(session.fix.longitude):
-                    longitude = degrees_decimal_to_degrees_minutes_seconds(
-                        session.fix.longitude
-                    )
-                    gps_ifd[piexif.GPSIFD.GPSLongitude] = (
-                        number_to_exif_rational(abs(longitude[0])),
-                        number_to_exif_rational(abs(longitude[1])),
-                        number_to_exif_rational(abs(longitude[2])),
-                    )
-                    gps_ifd[piexif.GPSIFD.GPSLongitudeRef] = (
-                        "E" if longitude[0] > 0 else "W"
-                    )
-
-                gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
-
-                fix_time = parser.parse(str(session.fix.time))
-                gps_ifd[piexif.GPSIFD.GPSDateStamp] = fix_time.strftime("%Y:%m:%d")
-                gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
-                    number_to_exif_rational(fix_time.hour),
-                    number_to_exif_rational(fix_time.minute),
-                    number_to_exif_rational(fix_time.second),
+            if gps.isfinite(gpsd.fix.latitude):
+                latitude = degrees_decimal_to_degrees_minutes_seconds(gpsd.fix.latitude)
+                gps_ifd[piexif.GPSIFD.GPSLatitude] = (
+                    number_to_exif_rational(abs(latitude[0])),
+                    number_to_exif_rational(abs(latitude[1])),
+                    number_to_exif_rational(abs(latitude[2])),
                 )
-                logger.debug("Updated EXIF GPS data.")
-                return gps_ifd
+                gps_ifd[piexif.GPSIFD.GPSLatitudeRef] = "N" if latitude[0] > 0 else "S"
+
+            if gps.isfinite(gpsd.fix.longitude):
+                longitude = degrees_decimal_to_degrees_minutes_seconds(
+                    gpsd.fix.longitude
+                )
+                gps_ifd[piexif.GPSIFD.GPSLongitude] = (
+                    number_to_exif_rational(abs(longitude[0])),
+                    number_to_exif_rational(abs(longitude[1])),
+                    number_to_exif_rational(abs(longitude[2])),
+                )
+                gps_ifd[piexif.GPSIFD.GPSLongitudeRef] = (
+                    "E" if longitude[0] > 0 else "W"
+                )
+
+            gps_ifd[piexif.GPSIFD.GPSMeasureMode] = str(fix_mode)
+
+            fix_time = parser.parse(str(gpsd.fix.time))
+            gps_ifd[piexif.GPSIFD.GPSDateStamp] = fix_time.strftime("%Y:%m:%d")
+            gps_ifd[piexif.GPSIFD.GPSTimeStamp] = (
+                number_to_exif_rational(fix_time.hour),
+                number_to_exif_rational(fix_time.minute),
+                number_to_exif_rational(fix_time.second),
+            )
+            logger.debug("Updated EXIF GPS data.")
+            return gps_ifd
     except asyncio.IncompleteReadError:
         logging.info("Connection closed by server")
     except asyncio.TimeoutError:
@@ -432,6 +422,12 @@ def main():
         time.sleep(1)
         picam2.start()
 
+        gpsd = gps.aiogps.aiogps(
+            connection_args={"host": "127.0.0.1", "port": 2947},
+            connection_timeout=5,
+            alive_opts={"rx_timeout": 5},
+        )
+
         def interrupt_signal_handler(_sig, _frame):
             logger.info("You pressed Ctrl+C!")
             picam2.stop()
@@ -447,7 +443,7 @@ def main():
             if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
             exif_metadata = {}
-            gps_exif_metadata = get_gps_exif_metadata()
+            gps_exif_metadata = get_gps_exif_metadata(gpsd)
             if gps_exif_metadata:
                 exif_metadata["GPS"] = gps_exif_metadata
                 logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
@@ -477,7 +473,7 @@ def main():
         if args.startup_capture:
             capture_sample()
 
-        gps_exif_metadata = get_gps_exif_metadata()
+        gps_exif_metadata = get_gps_exif_metadata(gpsd)
 
         systemd_notifier = None
         if args.systemd_notify:
@@ -491,7 +487,7 @@ def main():
             if len(matches) == 0:
                 # Retrieve the GPS data to ensure the cache is up-to-date in order to reduce latency when there is a detection.
                 # todo Update the GPS data asynchronously to allow the detection process to continue uninterrupted instead of blocking when there is a cache miss.
-                gps_exif_metadata = get_gps_exif_metadata()
+                gps_exif_metadata = get_gps_exif_metadata(gpsd)
                 # Take a quick breather to give the CPU a break.
                 # 1/5 of a second results in about 50% CPU usage.
                 # 1/10 of a second results in about 80% CPU usage.
