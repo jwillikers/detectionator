@@ -5,6 +5,7 @@ After=multi-user.target
 [Service]
 Type=Notify
 NotifyAccess=main
+Environment=PYTHONPATH=/usr/local/lib/python3/dist-packages:/usr/lib/python3/dist-packages
 Environment=PYTHONUNBUFFERED=true
 ExecStartPre=/bin/sleep 1
 ExecStart=/home/detectionator/venv/bin/python /usr/local/bin/detectionator.py --systemd-notify

@@ -299,7 +299,7 @@ The serial port `ttyAMA0` is used and since the Raspberry Pi 5 has a built-in RT
 DEVICES="/dev/ttyAMA0 /dev/pps1"
 
 # Other options you want to pass to gpsd
-GPSD_OPTIONS="-n"
+GPSD_OPTIONS="--nowait"
 
 # Automatically hot add/remove USB GPS devices via gpsdctl
 USBAUTO="true"

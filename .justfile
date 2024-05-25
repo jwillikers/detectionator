@@ -24,13 +24,18 @@ init gpsd_version="release-3.25":
         sudo apt-get --yes install chrony firewalld libatlas-base-dev pps-tools python3-dev python3-picamera2 python3-venv unattended-upgrades \
             build-essential manpages-dev pkg-config git scons libncurses-dev python3-serial libdbus-1-dev python3-matplotlib
     fi
-    git clone https://gitlab.com/gpsd/gpsd.git
-    cd gpsd
-    git switch --detach "{{ gpsd_version }}"
-    scons -c && scons && scons check && scons install
+    mkdir --parents "{{ home_directory() }}/Projects"
+    if [ ! -d "{{ home_directory() }}/Projects/gpsd" ]; then
+        git -C "{{ home_directory() }}/Projects" clone https://gitlab.com/gpsd/gpsd.git
+    fi
+    git -C "{{ home_directory() }}/Projects/gpsd" fetch --tags
+    git -C "{{ home_directory() }}/Projects/gpsd" switch --detach "{{ gpsd_version }}"
+    (cd "{{ home_directory() }}/Projects/gpsd" && scons -c && scons && scons check && sudo scons install)
+    sudo cp "{{ home_directory() }}/Projects/gpsd/builtmp/systemd/gpsdctl@.service" "{{ home_directory() }}/Projects/gpsd/builtmp/systemd/gpsd.service" "{{ home_directory() }}/Projects/gpsd/builtmp/systemd/gpsd.socket" /etc/systemd/system
+    sudo cp "{{ home_directory() }}/Projects/gpsd/contrib/apparmor/usr.sbin.gpsd" /etc/apparmor.d/usr.local.sbin.gpsd
+    sudo sed --in-place 's|/usr/sbin/gpsd|/usr/local/sbin/gpsd|g' /etc/apparmor.d/usr.local.sbin.gpsd
     sudo cp etc/profile.d/pythonpath.sh /etc/profile.d
-    # todo will socket start gpsd automatically?
-    # sudo systemctl enable --now gpsd
+    sudo systemctl enable --now chrony.service gpsd.service
 
 init-dev: && sync
     #!/usr/bin/env bash
