@@ -43,7 +43,7 @@ repos:
           - requirements-dev.in
         files: ^requirements-dev\.(in|txt)$
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.3
+    rev: v0.4.5
     hooks:
       - id: ruff
         args: [--fix]
