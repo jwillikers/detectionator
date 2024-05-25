@@ -3,7 +3,7 @@ Description=The Detectionator for capturing photographs using object detection
 After=default.target
 
 [Service]
-Type=Notify
+Type=notify
 NotifyAccess=main
 Environment=PYTHONPATH=/usr/local/lib/python3/dist-packages:/usr/lib/python3/dist-packages
 Environment=PYTHONUNBUFFERED=true
