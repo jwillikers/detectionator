@@ -328,7 +328,7 @@ def main():
     autofocus_speed = (
         controls.AfSpeedEnum.Fast
         if args.autofocus_speed == "fast"
-        else controls.AfSpeedEnum.Normal,
+        else controls.AfSpeedEnum.Normal
     )
 
     autofocus_range = controls.AfRangeEnum.Full
@@ -395,12 +395,12 @@ def main():
         if has_autofocus:
             picam2.set_controls(
                 {
+                    "AfMetering": controls.AfMeteringEnum.Windows,
+                    "AfMode": controls.AfModeEnum.Auto,
                     # todo Test continuous autofocus.
                     # "AfMode": controls.AfModeEnum.Continuous,
-                    "AfMode": controls.AfModeEnum.Auto,
-                    "AfMetering": controls.AfMeteringEnum.Windows,
-                    "AfSpeed": autofocus_speed,
                     "AfRange": autofocus_range,
+                    "AfSpeed": autofocus_speed,
                 }
             )
         scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
