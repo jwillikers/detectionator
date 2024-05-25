@@ -2,7 +2,6 @@
 import argparse
 import asyncio
 import configargparse
-from cachetools.func import ttl_cache
 from dateutil import parser
 from functools import partial
 import logging
@@ -28,6 +27,8 @@ from exif_utils import (
 
 
 logger = logging.getLogger(__name__)
+
+gps_exif_metadata = {}
 
 
 def read_label_file(file_path):
@@ -120,16 +121,7 @@ def scale(coord, scaler_crop_maximum, lores):
     )
 
 
-# Retrieve and format the data from the GPS for EXIF.
-# Only update the GPS data every 10 minutes to reduce latency.
-# Retrieving data from the GPS can take up to one second, which is too long.
-@ttl_cache(maxsize=1, ttl=600)
-def get_gps_exif_metadata(gpsd: gps.aiogps.aiogps):
-    loop = asyncio.get_event_loop()
-    return loop.run_until_complete(get_gps_exif_metadata_async(gpsd))
-
-
-async def get_gps_exif_metadata_async(gpsd: gps.aiogps.aiogps) -> dict:
+async def update_gps_metadata(gpsd: gps.aiogps.aiogps):
     try:
         while True:
             await gpsd.read()
@@ -144,7 +136,8 @@ async def get_gps_exif_metadata_async(gpsd: gps.aiogps.aiogps) -> dict:
             fix_mode = gpsd.fix.mode
             if fix_mode in [0, gps.MODE_NO_FIX]:
                 logger.warning("No GPS fix")
-                return {}
+                await asyncio.sleep(5)
+                continue
 
             # if gps.ALTITUDE_SET & gpsd.valid
             altitude = gpsd.fix.altHAE
@@ -201,13 +194,14 @@ async def get_gps_exif_metadata_async(gpsd: gps.aiogps.aiogps) -> dict:
                 number_to_exif_rational(fix_time.second),
             )
             logger.debug("Updated EXIF GPS data.")
-            return gps_ifd
+            gps_exif_metadata = gps_ifd  # noqa: F841
+            await asyncio.sleep(600)
     except asyncio.IncompleteReadError:
-        logging.info("Connection closed by server")
+        logger.info("Connection closed by server")
     except asyncio.TimeoutError:
-        logging.error("Timeout waiting for gpsd to respond")
+        logger.error("Timeout waiting for gpsd to respond")
     except Exception as exc:  # pylint: disable=W0703
-        logging.error(f"Error: {exc}")
+        logger.error(f"Error: {exc}")
     except asyncio.CancelledError:
         return {}
 
@@ -219,7 +213,92 @@ def captured_file(filename: str, matches, job):
         logger.error(f"Failed to capture image '{filename}': {matches}")
 
 
-def main():
+async def detect_and_capture(
+    picam2,
+    model,
+    labels,
+    match,
+    scaler_crop_maximum,
+    low_resolution_width,
+    low_resolution_height,
+    has_autofocus,
+    burst: bool,
+    output_directory: pathlib.Path,
+    frame: int,
+    gap: float,
+):
+    while True:
+        image = picam2.capture_array("lores")
+        matches = inference_tensorflow(image, model, labels, match)
+        if len(matches) == 0:
+            # Take a quick breather to give the CPU a break.
+            # 1/5 of a second results in about 50% CPU usage.
+            # 1/10 of a second results in about 80% CPU usage.
+            # 1/20 of a second results in about 130% CPU usage.
+            # todo Increase / decrease this wait based on recent detections.
+            await asyncio.sleep(0.075)
+            continue
+
+        # Autofocus
+        best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
+        match_box = best_match[1]
+        adjusted_focal_point = scale(
+            (
+                match_box[0],
+                match_box[1],
+                abs(match_box[2] - match_box[0]),
+                abs(match_box[3] - match_box[1]),
+            ),
+            scaler_crop_maximum,
+            (low_resolution_width, low_resolution_height),
+        )
+        picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+        focus_cycle_job = None
+        if has_autofocus:
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+
+        exif_metadata = {}
+        if gps_exif_metadata:
+            exif_metadata["GPS"] = gps_exif_metadata
+            logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
+        else:
+            logger.warning("No GPS fix")
+
+        matches_name = "detection"
+        if labels:
+            matches_name = "-".join([i[2] for i in matches])
+        filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
+        if has_autofocus:
+            if not picam2.wait(focus_cycle_job):
+                logger.warning("Autofocus cycle failed.")
+        picam2.capture_file(
+            filename,
+            exif_data=exif_metadata,
+            format="jpeg",
+            signal_function=partial(captured_file, filename, matches),
+        )
+        frame += 1
+
+        # Capture burst photographs.
+        for _ in range(burst - 1):
+            focus_cycle_job = None
+            if has_autofocus:
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
+            if has_autofocus:
+                if not picam2.wait(focus_cycle_job):
+                    logger.warning("Autofocus cycle failed.")
+            picam2.capture_file(
+                filename,
+                exif_data=exif_metadata,
+                format="jpeg",
+                signal_function=partial(captured_file, filename, matches),
+            )
+            frame += 1
+        await asyncio.sleep(gap)
+
+
+async def main():
     parser = configargparse.ArgParser(
         default_config_files=[
             "detectionator.toml",
@@ -363,6 +442,7 @@ def main():
     default_low_resolution_scale = 8
 
     frame = int(time.time())
+
     with Picamera2() as picam2:
         if args.low_resolution_width:
             low_resolution_width = args.low_resolution_width
@@ -422,11 +502,6 @@ def main():
         time.sleep(1)
         picam2.start()
 
-        gpsd = gps.aiogps.aiogps(
-            connection_timeout=1,
-            reconnect=0,
-        )
-
         def interrupt_signal_handler(_sig, _frame):
             logger.info("You pressed Ctrl+C!")
             picam2.stop()
@@ -442,7 +517,6 @@ def main():
             if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
             exif_metadata = {}
-            gps_exif_metadata = get_gps_exif_metadata(gpsd)
             if gps_exif_metadata:
                 exif_metadata["GPS"] = gps_exif_metadata
                 logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
@@ -472,88 +546,39 @@ def main():
         if args.startup_capture:
             capture_sample()
 
-        gps_exif_metadata = get_gps_exif_metadata(gpsd)
-
-        systemd_notifier = None
-        if args.systemd_notify:
-            systemd_notifier = sdnotify.SystemdNotifier()
-            systemd_notifier.notify("READY=1")
-            systemd_notifier.notify(f"STATUS=Looking for {match}")
-
-        while True:
-            image = picam2.capture_array("lores")
-            matches = inference_tensorflow(image, args.model, labels, match)
-            if len(matches) == 0:
-                # Retrieve the GPS data to ensure the cache is up-to-date in order to reduce latency when there is a detection.
-                # todo Update the GPS data asynchronously to allow the detection process to continue uninterrupted instead of blocking when there is a cache miss.
-                gps_exif_metadata = get_gps_exif_metadata(gpsd)
-                # Take a quick breather to give the CPU a break.
-                # 1/5 of a second results in about 50% CPU usage.
-                # 1/10 of a second results in about 80% CPU usage.
-                # 1/20 of a second results in about 130% CPU usage.
-                # todo Increase / decrease this wait based on recent detections.
-                time.sleep(0.075)
-                continue
-
-            # Autofocus
-            best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
-            match_box = best_match[1]
-            adjusted_focal_point = scale(
-                (
-                    match_box[0],
-                    match_box[1],
-                    abs(match_box[2] - match_box[0]),
-                    abs(match_box[3] - match_box[1]),
-                ),
-                scaler_crop_maximum,
-                (low_resolution_width, low_resolution_height),
-            )
-            picam2.set_controls({"AfWindows": [adjusted_focal_point]})
-            focus_cycle_job = None
-            if has_autofocus:
-                focus_cycle_job = picam2.autofocus_cycle(wait=False)
-
-            exif_metadata = {}
-            if gps_exif_metadata:
-                exif_metadata["GPS"] = gps_exif_metadata
-                logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
-            else:
-                logger.warning("No GPS fix")
-
-            matches_name = "detection"
-            if labels:
-                matches_name = "-".join([i[2] for i in matches])
-            filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
-            if has_autofocus:
-                if not picam2.wait(focus_cycle_job):
-                    logger.warning("Autofocus cycle failed.")
-            picam2.capture_file(
-                filename,
-                exif_data=exif_metadata,
-                format="jpeg",
-                signal_function=partial(captured_file, filename, matches),
-            )
-            frame += 1
-
-            # Capture burst photographs.
-            for _ in range(args.burst - 1):
-                focus_cycle_job = None
-                if has_autofocus:
-                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
-                filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
-                if has_autofocus:
-                    if not picam2.wait(focus_cycle_job):
-                        logger.warning("Autofocus cycle failed.")
-                picam2.capture_file(
-                    filename,
-                    exif_data=exif_metadata,
-                    format="jpeg",
-                    signal_function=partial(captured_file, filename, matches),
+        try:
+            async with gps.aiogps.aiogps(
+                connection_timeout=1,
+                reconnect=5,
+            ) as gpsd:
+                systemd_notifier = None
+                if args.systemd_notify:
+                    systemd_notifier = sdnotify.SystemdNotifier()
+                    systemd_notifier.notify("READY=1")
+                    systemd_notifier.notify(f"STATUS=Looking for {match}")
+                await asyncio.gather(
+                    update_gps_metadata(gpsd),
+                    detect_and_capture(
+                        picam2=picam2,
+                        model=args.model,
+                        labels=labels,
+                        match=match,
+                        scaler_crop_maximum=scaler_crop_maximum,
+                        low_resolution_width=low_resolution_width,
+                        low_resolution_height=low_resolution_height,
+                        has_autofocus=has_autofocus,
+                        burst=args.burst,
+                        output_directory=output_directory,
+                        frame=frame,
+                        gap=args.gap,
+                    ),
+                    return_exceptions=True,
                 )
-                frame += 1
-
-            time.sleep(args.gap)
+        except asyncio.CancelledError:
+            return
+        except Exception as exc:
+            logger.error(f"Error: {exc}")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
