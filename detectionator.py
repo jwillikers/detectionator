@@ -507,7 +507,7 @@ async def main():
         )
         # todo See how forcing the streams into alignment effects performance.
         # todo Make this a configuration option, enabled by default.
-        config.align()
+        picam2.align_configuration(config)
         low_resolution_size = picam2.camera_configuration()["lores"]["size"]
         main_resolution_size = picam2.camera_configuration()["main"]["size"]
         logger.info(f"Low resolution: {low_resolution_size}")
