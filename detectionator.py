@@ -496,8 +496,7 @@ async def main():
             },
             # Don't display anything in the preview window since the system is running headless.
             display=None,
-            # todo Test enabling queueing since we're using multiple buffers.
-            queue=True,
+            queue=False,
             lores={
                 # Only Pi 5 and newer can use formats besides YUV here.
                 # This avoids having to convert the image format for OpenCV later.
