@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import configargparse
+import datetime
 from dateutil import parser
 from functools import partial
 import logging
@@ -16,6 +17,7 @@ import cv2
 from libcamera import controls
 import numpy as np
 from picamera2 import Picamera2
+from picamera2.encoders import Quality
 import piexif
 import sdnotify
 import tflite_runtime.interpreter as tflite
@@ -298,6 +300,75 @@ async def detect_and_capture(
         await asyncio.sleep(gap)
 
 
+async def detect_and_record(
+    picam2,
+    model,
+    labels,
+    match,
+    gps_exif_metadata: dict,
+    scaler_crop_maximum,
+    low_resolution_width,
+    low_resolution_height,
+    has_autofocus,
+    burst: bool,
+    output_directory: pathlib.Path,
+    frame: int,
+    gap: float,
+    encoder,
+):
+    while True:
+        image = picam2.capture_array("lores")
+        matches = inference_tensorflow(image, model, labels, match)
+        if len(matches) == 0:
+            await asyncio.sleep(0.075)
+
+        last_detection_time = datetime.datetime.now()
+        matches_name = "detection"
+        if labels:
+            matches_name = "-".join([i[2] for i in matches])
+        filename = os.path.join(output_directory, f"{matches_name}-{frame}.h264")
+
+        picam2.start_recording(encoder, filename, quality=Quality.VERY_HIGH)
+
+        # exif_metadata = {}
+        # if gps_exif_metadata:
+        #     exif_metadata["GPS"] = gps_exif_metadata
+        #     logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
+        # else:
+        #     logger.warning("No GPS fix")
+
+        while (datetime.datetime.now() - last_detection_time).seconds <= 3:
+            # Autofocus
+            if len(matches) == 0:
+                await asyncio.sleep(0.5)
+            best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
+            match_box = best_match[1]
+            adjusted_focal_point = scale(
+                (
+                    match_box[0],
+                    match_box[1],
+                    abs(match_box[2] - match_box[0]),
+                    abs(match_box[3] - match_box[1]),
+                ),
+                scaler_crop_maximum,
+                (low_resolution_width, low_resolution_height),
+            )
+            picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+            focus_cycle_job = None
+            if has_autofocus:
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            if has_autofocus:
+                if not picam2.wait(focus_cycle_job):
+                    logger.warning("Autofocus cycle failed.")
+            await asyncio.sleep(gap)
+
+            image = picam2.capture_array("lores")
+            matches = inference_tensorflow(image, model, labels, match)
+
+        picam2.stop_recording()
+        frame += 1
+
+
 async def main():
     parser = configargparse.ArgParser(
         default_config_files=[
@@ -470,8 +541,11 @@ async def main():
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 0
 
+        # encoder = H264Encoder()
+        #
         # create_video_configuration(
         #     # Use more buffers for a smoother video.
+        #     # todo Large number of buffers may require dtoverlay=vc4-kms-v3d,cma-512 in /boot/firmware/config.txt
         #     buffer_count=12,
         #     # Minimize the time it takes to autofocus by setting the frame rate.
         #     # https://github.com/raspberrypi/picamera2/issues/884
@@ -492,6 +566,7 @@ async def main():
             # controls={"FrameRate": 30},
             controls={
                 # todo Add config option for this. Likely, Night is also an important configuration choice.
+                # todo Set this to Night based off of GPS coordinates and sunset time or better yet a light sensor.
                 "HdrMode": controls.HdrModeEnum.SingleExposure,
             },
             # Don't display anything in the preview window since the system is running headless.
