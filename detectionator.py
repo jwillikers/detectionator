@@ -134,7 +134,7 @@ async def update_gps_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: dict):
             fix_mode = gpsd.fix.mode
             if fix_mode in [0, gps.MODE_NO_FIX]:
                 logger.warning("No GPS fix")
-                await asyncio.sleep(5)
+                await asyncio.sleep(10)
                 continue
 
             # if gps.ALTITUDE_SET & gpsd.valid
