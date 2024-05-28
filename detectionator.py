@@ -470,13 +470,34 @@ async def main():
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 0
 
+        # create_video_configuration(
+        #     # Use more buffers for a smoother video.
+        #     buffer_count=12,
+        #     # Minimize the time it takes to autofocus by setting the frame rate.
+        #     # https://github.com/raspberrypi/picamera2/issues/884
+        #     controls={
+        #         "FrameRate": 30,
+        #         "FrameDurationLimits": ,
+        #         "HdrMode": controls.HdrModeEnum.SingleExposure,
+        #         "NoiseReductionMode": controls.NoiseReductionMode.Fast,
+        #     },
+        #     # Don't display anything in the preview window since the system is running headless.
+        #     display=None,
+        # )
         config = picam2.create_still_configuration(
+            # Is the buffering really necessary for capture configuration?
             buffer_count=4,
             # Minimize the time it takes to autofocus by setting the frame rate.
             # https://github.com/raspberrypi/picamera2/issues/884
-            # controls={'FrameRate': 30},
+            # controls={"FrameRate": 30},
+            controls={
+                # todo Add config option for this. Likely, Night is also an important configuration choice.
+                "HdrMode": controls.HdrModeEnum.SingleExposure,
+            },
             # Don't display anything in the preview window since the system is running headless.
             display=None,
+            # todo Test enabling queueing since we're using multiple buffers.
+            queue=True,
             lores={
                 # Only Pi 5 and newer can use formats besides YUV here.
                 # This avoids having to convert the image format for OpenCV later.
@@ -484,6 +505,13 @@ async def main():
                 "size": (low_resolution_width, low_resolution_height),
             },
         )
+        # todo See how forcing the streams into alignment effects performance.
+        # todo Make this a configuration option, enabled by default.
+        config.align()
+        low_resolution_size = picam2.camera_configuration()["lores"]["size"]
+        main_resolution_size = picam2.camera_configuration()["main"]["size"]
+        logger.info(f"Low resolution: {low_resolution_size}")
+        logger.info(f"Main resolution: {main_resolution_size}")
         has_autofocus = "AfMode" in picam2.camera_controls
         picam2.configure(config)
         # Enable autofocus.
