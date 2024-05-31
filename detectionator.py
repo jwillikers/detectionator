@@ -485,6 +485,8 @@ async def main():
         #     display=None,
         # )
         config = picam2.create_still_configuration(
+            # Using a buffer seems to reduce the latency between detections.
+            buffer_count=2,
             # Minimize the time it takes to autofocus by setting the frame rate.
             # https://github.com/raspberrypi/picamera2/issues/884
             # controls={"FrameRate": 30},
