@@ -745,9 +745,9 @@ async def main():
             output.start()
             time.sleep(5)
             output.stop()
-            encoder.output = encoder_outputs
             if not encoder_running:
                 encoder.stop()
+            encoder.output = encoder_outputs
 
         def record_sample_signal_handler(_sig, _frame):
             record_sample(gps_mp4_metadata)
