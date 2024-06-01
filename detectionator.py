@@ -382,6 +382,9 @@ async def detect_and_record(
             # Autofocus
             if len(matches) == 0:
                 await asyncio.sleep(0.5)
+                continue
+
+            last_detection_time = datetime.datetime.now()
             best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
             match_box = best_match[1]
             adjusted_focal_point = scale(
