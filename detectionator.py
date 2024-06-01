@@ -756,7 +756,7 @@ async def main():
         if args.stream:
             # todo Include audio?
             output = FfmpegOutput(
-                output_filename=f"-re -stream_loop -1 -f rtsp rtsp://{args.stream}",
+                output_filename=f"-f rtsp rtsp://{args.stream}",
                 audio=False,
             )
             encoder.output.append(output)
