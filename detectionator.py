@@ -369,6 +369,8 @@ async def detect_and_record(
         ffmpeg_command += os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
         output = FfmpegOutput(ffmpeg_command, audio=audio)
         encoder_outputs = encoder.output
+        if not isinstance(encoder_outputs, list):
+            encoder_outputs = list(encoder_outputs)
         encoder.output([output] + encoder_outputs)
         encoder_running = encoder.running
         if not encoder_running:
@@ -734,6 +736,8 @@ async def main():
             )
             output = FfmpegOutput(ffmpeg_command, audio=args.audio)
             encoder_outputs = encoder.output
+            if not isinstance(encoder_outputs, list):
+                encoder_outputs = list(encoder_outputs)
             encoder.output([output] + encoder_outputs)
             encoder_running = encoder.running
             if not encoder_running:
