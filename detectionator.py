@@ -496,6 +496,11 @@ async def main():
         help="The web address to which to stream video via RTSP like 'mediamtx.jwillikers.io:8554/detectionator'",
     )
     parser.add_argument(
+        "--rtsp-tcp",
+        action=argparse.BooleanOptionalAction,
+        help="Stream to the RTSP server using TCP",
+    )
+    parser.add_argument(
         "--systemd-notify",
         help="Enable systemd-notify support for running as a systemd service.",
         action=argparse.BooleanOptionalAction,
@@ -754,9 +759,13 @@ async def main():
                 capture_sample(gps_exif_metadata)
 
         if args.stream:
-            # todo Include audio?
+            ffmpeg_command = "-f rtsp"
+            if args.rtsp_tcp:
+                ffmpeg_command += " -rtsp_transport tcp"
+            ffmpeg_command += f" rtsp://{args.stream}"
             output = FfmpegOutput(
-                output_filename=f"-f rtsp rtsp://{args.stream}",
+                output_filename=ffmpeg_command,
+                # todo Include audio?
                 audio=False,
             )
             encoder.output.append(output)
