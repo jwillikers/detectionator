@@ -368,7 +368,8 @@ async def detect_and_record(
             logger.warning("No GPS fix")
         ffmpeg_command += os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
         output = FfmpegOutput(ffmpeg_command, audio=audio)
-        encoder.output.append(output)
+        encoder_outputs = encoder.output
+        encoder.output([output] + encoder_outputs)
         encoder_running = encoder.running
         if not encoder_running:
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
@@ -404,6 +405,7 @@ async def detect_and_record(
         output.stop()
         if not encoder_running:
             encoder.stop()
+        encoder.output(encoder_outputs)
         frame += 1
 
 
@@ -731,14 +733,15 @@ async def main():
                 output_directory, f"sample-recording-{timestamp}.mp4"
             )
             output = FfmpegOutput(ffmpeg_command, audio=args.audio)
-            encoder.output += output
+            encoder_outputs = encoder.output
+            encoder.output([output] + encoder_outputs)
             encoder_running = encoder.running
             if not encoder_running:
                 picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
             output.start()
             time.sleep(5)
             output.stop()
-            encoder.output -= output
+            encoder.output(encoder_outputs)
             if not encoder_running:
                 encoder.stop()
 
