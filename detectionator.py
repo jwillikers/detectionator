@@ -17,7 +17,8 @@ import cv2
 from libcamera import controls
 import numpy as np
 from picamera2 import Picamera2
-from picamera2.encoders import Quality
+from picamera2.encoders import H264Encoder, Quality
+from picamera2.outputs import FfmpegOutput
 import piexif
 import sdnotify
 import tflite_runtime.interpreter as tflite
@@ -121,7 +122,40 @@ def scale(coord, scaler_crop_maximum, lores):
     )
 
 
-async def update_gps_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: dict):
+async def update_gps_mp4_metadata(gpsd: gps.aiogps.aiogps, gps_mp4_metadata: dict):
+    try:
+        while True:
+            await gpsd.read()
+            if not (gps.PACKET_SET & gpsd.valid):
+                logger.warning("Failed to receive package from gpsd")
+                continue
+
+            if not (gps.MODE_SET & gpsd.valid):
+                logger.debug("GPS session invalid")
+                continue
+
+            fix_mode = gpsd.fix.mode
+            if fix_mode in [0, gps.MODE_NO_FIX]:
+                logger.warning("No GPS fix")
+                await asyncio.sleep(10)
+                continue
+            if gps.isfinite(gpsd.fix.latitude):
+                gps_mp4_metadata["latitude"] = gpsd.fix.latitude
+            if gps.isfinite(gpsd.fix.longitude):
+                gps_mp4_metadata["longitude"] = gpsd.fix.longitude
+            logger.debug("Updated MP4 GPS data.")
+            await asyncio.sleep(600)
+    except asyncio.IncompleteReadError:
+        logger.info("Connection closed by server")
+    except asyncio.TimeoutError:
+        logger.error("Timeout waiting for gpsd to respond")
+    except Exception as exc:  # pylint: disable=W0703
+        logger.error(f"Error: {exc}")
+    except asyncio.CancelledError:
+        return {}
+
+
+async def update_gps_exif_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: dict):
     try:
         while True:
             await gpsd.read()
@@ -305,16 +339,16 @@ async def detect_and_record(
     model,
     labels,
     match,
-    gps_exif_metadata: dict,
+    gps_mp4_metadata: dict,
     scaler_crop_maximum,
     low_resolution_width,
     low_resolution_height,
     has_autofocus,
-    burst: bool,
     output_directory: pathlib.Path,
     frame: int,
     gap: float,
     encoder,
+    audio: bool,
 ):
     while True:
         image = picam2.capture_array("lores")
@@ -326,16 +360,21 @@ async def detect_and_record(
         matches_name = "detection"
         if labels:
             matches_name = "-".join([i[2] for i in matches])
-        filename = os.path.join(output_directory, f"{matches_name}-{frame}.h264")
-
-        picam2.start_recording(encoder, filename, quality=Quality.VERY_HIGH)
-
-        # exif_metadata = {}
-        # if gps_exif_metadata:
-        #     exif_metadata["GPS"] = gps_exif_metadata
-        #     logger.debug(f"Exif GPS metadata: {gps_exif_metadata}")
-        # else:
-        #     logger.warning("No GPS fix")
+        ffmpeg_command = ""
+        if gps_mp4_metadata:
+            ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+            logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
+        else:
+            logger.warning("No GPS fix")
+        ffmpeg_command.append(
+            os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
+        )
+        output = FfmpegOutput(ffmpeg_command, audio=audio)
+        encoder.output.append(output)
+        encoder_running = encoder.running
+        if not encoder_running:
+            picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+        output.start()
 
         while (datetime.datetime.now() - last_detection_time).seconds <= 3:
             # Autofocus
@@ -364,8 +403,9 @@ async def detect_and_record(
 
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, model, labels, match)
-
-        picam2.stop_recording()
+        output.stop()
+        if not encoder_running:
+            encoder.stop()
         frame += 1
 
 
@@ -378,6 +418,11 @@ async def main():
             "/etc/detectionator/config.toml",
         ],
         config_file_parser_class=configargparse.TomlConfigParser(["detectionator"]),
+    )
+    parser.add_argument(
+        "--audio",
+        help="Include audio with video stream.",
+        action=argparse.BooleanOptionalAction,
     )
     parser.add_argument(
         "--autofocus-range",
@@ -396,6 +441,12 @@ async def main():
         help="The number of pictures to take after a successful detection.",
         default=3,
         type=int,
+    )
+    parser.add_argument(
+        "--capture-mode",
+        choices=["still", "video"],
+        help="Capture still images or video.",
+        default="still",
     )
     parser.add_argument(
         "-c",
@@ -439,6 +490,10 @@ async def main():
         "--startup-capture",
         help="Take sample photographs when starting the program.",
         action=argparse.BooleanOptionalAction,
+    )
+    parser.add_argument(
+        "--stream",
+        help="The web address to which to stream video via RTSP like 'mediamtx.jwillikers.io:8554/detectionator'",
     )
     parser.add_argument(
         "--systemd-notify",
@@ -541,43 +596,45 @@ async def main():
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 0
 
-        # encoder = H264Encoder()
-        #
-        # create_video_configuration(
-        #     # Use more buffers for a smoother video.
-        #     # todo Large number of buffers may require dtoverlay=vc4-kms-v3d,cma-512 in /boot/firmware/config.txt
-        #     buffer_count=12,
-        #     # Minimize the time it takes to autofocus by setting the frame rate.
-        #     # https://github.com/raspberrypi/picamera2/issues/884
-        #     controls={
-        #         "FrameRate": 30,
-        #         "FrameDurationLimits": ,
-        #         "HdrMode": controls.HdrModeEnum.SingleExposure,
-        #         "NoiseReductionMode": controls.NoiseReductionMode.Fast,
-        #     },
-        #     # Don't display anything in the preview window since the system is running headless.
-        #     display=None,
-        # )
-        config = picam2.create_still_configuration(
-            # Using a buffer seems to reduce the latency between detections.
-            buffer_count=2,
-            # Minimize the time it takes to autofocus by setting the frame rate.
-            # https://github.com/raspberrypi/picamera2/issues/884
-            # controls={"FrameRate": 30},
-            controls={
-                # todo Add config option for this. Likely, Night is also an important configuration choice.
-                # todo Set this to Night based off of GPS coordinates and sunset time or better yet a light sensor.
-                "HdrMode": controls.HdrModeEnum.SingleExposure,
-            },
-            # Don't display anything in the preview window since the system is running headless.
-            display=None,
-            lores={
-                # Only Pi 5 and newer can use formats besides YUV here.
-                # This avoids having to convert the image format for OpenCV later.
-                "format": "RGB888",
-                "size": (low_resolution_width, low_resolution_height),
-            },
-        )
+        encoder = None
+        config = None
+        if args.capture_mode == "video":
+            encoder = H264Encoder()
+            config = picam2.create_video_configuration(
+                # Use more buffers for a smoother video.
+                # todo Large number of buffers may require dtoverlay=vc4-kms-v3d,cma-512 in /boot/firmware/config.txt
+                buffer_count=8,
+                # Minimize the time it takes to autofocus by setting the frame rate.
+                # https://github.com/raspberrypi/picamera2/issues/884
+                controls={
+                    "FrameRate": 30,
+                    "HdrMode": controls.HdrModeEnum.SingleExposure,
+                    "NoiseReductionMode": controls.NoiseReductionMode.Fast,
+                },
+                # Don't display anything in the preview window since the system is running headless.
+                display=None,
+            )
+        else:
+            config = picam2.create_still_configuration(
+                # Using a buffer seems to reduce the latency between detections.
+                buffer_count=2,
+                # Minimize the time it takes to autofocus by setting the frame rate.
+                # https://github.com/raspberrypi/picamera2/issues/884
+                # controls={"FrameRate": 30},
+                controls={
+                    # todo Add config option for this. Likely, Night is also an important configuration choice.
+                    # todo Set this to Night based off of GPS coordinates and sunset time or better yet a light sensor.
+                    "HdrMode": controls.HdrModeEnum.SingleExposure,
+                },
+                # Don't display anything in the preview window since the system is running headless.
+                display=None,
+                lores={
+                    # Only Pi 5 and newer can use formats besides YUV here.
+                    # This avoids having to convert the image format for OpenCV later.
+                    "format": "RGB888",
+                    "size": (low_resolution_width, low_resolution_height),
+                },
+            )
         # todo See how forcing the streams into alignment effects performance.
         # todo Make this a configuration option, enabled by default.
         picam2.align_configuration(config)
@@ -611,6 +668,7 @@ async def main():
         signal.signal(signal.SIGINT, interrupt_signal_handler)
 
         gps_exif_metadata = {}
+        gps_mp4_metadata = {}
 
         # Take a sample photograph with both high and low resolution images for reference.
         def capture_sample(gps_exif_metadata):
@@ -644,10 +702,60 @@ async def main():
         def capture_sample_signal_handler(_sig, _frame):
             capture_sample(gps_exif_metadata)
 
-        signal.signal(signal.SIGUSR1, capture_sample_signal_handler)
+        # Record a five second video sample.
+        def record_sample(gps_mp4_metadata: dict):
+            timestamp = int(time.time())
+            focus_cycle_job = None
+            if has_autofocus:
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            if has_autofocus:
+                if not picam2.wait(focus_cycle_job):
+                    logger.warning("Autofocus cycle failed.")
+            ffmpeg_command = ""
+            if gps_mp4_metadata:
+                ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+                logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
+            else:
+                logger.warning("No GPS fix")
+            ffmpeg_command.append(
+                os.path.join(output_directory, f"sample-recording-{timestamp}.mp4")
+            )
+            output = FfmpegOutput(ffmpeg_command, audio=args.audio)
+            encoder.output.append(output)
+            encoder_running = encoder.running
+            if not encoder_running:
+                picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+            output.start()
+            time.sleep(5)
+            output.stop()
+            encoder.output.remove(output)
+            if not encoder_running:
+                encoder.stop()
+
+        def record_sample_signal_handler(_sig, _frame):
+            record_sample(gps_mp4_metadata)
+
+        if args.capture_mode == "video":
+            signal.signal(signal.SIGUSR1, record_sample_signal_handler)
+        else:
+            signal.signal(signal.SIGUSR1, capture_sample_signal_handler)
 
         if args.startup_capture:
-            capture_sample(gps_exif_metadata)
+            if args.capture_mode == "video":
+                record_sample(gps_mp4_metadata)
+            else:
+                capture_sample(gps_exif_metadata)
+
+        if args.stream:
+            # todo Include audio?
+            output = FfmpegOutput(
+                output_filename=f"-re -stream_loop -1 -i stream.ts -c copy -f rtsp rtsp://{args.stream}",
+                audio=False,
+            )
+            encoder.output.append(output)
+            if not encoder.running:
+                picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+            output.start()
 
         try:
             async with gps.aiogps.aiogps(
@@ -660,7 +768,9 @@ async def main():
                     systemd_notifier.notify("READY=1")
                     systemd_notifier.notify(f"STATUS=Looking for {match}")
                 await asyncio.gather(
-                    update_gps_metadata(gpsd, gps_exif_metadata),
+                    update_gps_exif_metadata(gpsd, gps_exif_metadata)
+                    if args.capture_mode == "still"
+                    else update_gps_mp4_metadata(gpsd, gps_mp4_metadata),
                     detect_and_capture(
                         picam2=picam2,
                         model=args.model,
@@ -675,6 +785,23 @@ async def main():
                         output_directory=output_directory,
                         frame=frame,
                         gap=args.gap,
+                    )
+                    if args.capture_mode == "still"
+                    else detect_and_record(
+                        picam2=picam2,
+                        model=args.model,
+                        labels=labels,
+                        match=match,
+                        gps_mp4_metadata=gps_mp4_metadata,
+                        scaler_crop_maximum=scaler_crop_maximum,
+                        low_resolution_width=low_resolution_width,
+                        low_resolution_height=low_resolution_height,
+                        has_autofocus=has_autofocus,
+                        output_directory=output_directory,
+                        frame=frame,
+                        gap=args.gap,
+                        encoder=encoder,
+                        audio=args.audio,
                     ),
                     return_exceptions=True,
                 )
