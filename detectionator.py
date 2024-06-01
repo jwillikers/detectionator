@@ -361,14 +361,12 @@ async def detect_and_record(
         if labels:
             matches_name = "-".join([i[2] for i in matches])
         ffmpeg_command = ""
-        # if gps_mp4_metadata:
-        #     ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
-        #     logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
-        # else:
-        #     logger.warning("No GPS fix")
-        ffmpeg_command.append(
-            os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
-        )
+        if gps_mp4_metadata:
+            ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+            logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
+        else:
+            logger.warning("No GPS fix")
+        ffmpeg_command += os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
         output = FfmpegOutput(ffmpeg_command, audio=audio)
         encoder.output.append(output)
         encoder_running = encoder.running
@@ -724,13 +722,13 @@ async def main():
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
             ffmpeg_command = ""
-            # if gps_mp4_metadata:
-            #     ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
-            #     logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
-            # else:
-            #     logger.warning("No GPS fix")
-            ffmpeg_command.append(
-                os.path.join(output_directory, f"sample-recording-{timestamp}.mp4")
+            if gps_mp4_metadata:
+                ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+                logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
+            else:
+                logger.warning("No GPS fix")
+            ffmpeg_command += os.path.join(
+                output_directory, f"sample-recording-{timestamp}.mp4"
             )
             output = FfmpegOutput(ffmpeg_command, audio=args.audio)
             encoder.output.append(output)
