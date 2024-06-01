@@ -614,7 +614,7 @@ async def main():
                 # Minimize the time it takes to autofocus by setting the frame rate.
                 # https://github.com/raspberrypi/picamera2/issues/884
                 controls={
-                    "FrameRate": 60,
+                    "FrameRate": 30,
                     "HdrMode": controls.HdrModeEnum.SingleExposure,
                     # NoiseReductionMode doesn't exist?
                     # "NoiseReductionMode": controls.NoiseReductionMode.Fast,
