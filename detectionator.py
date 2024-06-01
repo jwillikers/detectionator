@@ -738,14 +738,14 @@ async def main():
             encoder_outputs = encoder.output
             if not isinstance(encoder_outputs, list):
                 encoder_outputs = [encoder_outputs]
-            encoder.output([output] + encoder_outputs)
+            encoder.output = [output] + encoder_outputs
             encoder_running = encoder.running
             if not encoder_running:
                 picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
             output.start()
             time.sleep(5)
             output.stop()
-            encoder.output(encoder_outputs)
+            encoder.output = encoder_outputs
             if not encoder_running:
                 encoder.stop()
 
@@ -774,6 +774,10 @@ async def main():
                 audio=False,
             )
             encoder.output.append(output)
+            # encoder_outputs = encoder.output
+            # if not isinstance(encoder_outputs, list):
+            #     encoder_outputs = [encoder_outputs]
+            # encoder.output = [output] + encoder_outputs
             if not encoder.running:
                 picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
             output.start()
