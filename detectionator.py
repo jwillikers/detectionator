@@ -375,7 +375,7 @@ async def detect_and_record(
         encoder.output = [output] + encoder_outputs
         encoder_running = encoder.running
         if not encoder_running:
-            picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+            encoder.start(quality=Quality.VERY_HIGH)
         output.start()
 
         while (datetime.datetime.now() - last_detection_time).seconds <= 3:
@@ -686,6 +686,9 @@ async def main():
         gps_exif_metadata = {}
         gps_mp4_metadata = {}
 
+        # todo Do these handlers need to be setup inside the async context?
+        # There seems to be extreme performance issues when triggering a sample video this way.
+
         # Take a sample photograph with both high and low resolution images for reference.
         def capture_sample(gps_exif_metadata):
             timestamp = int(time.time())
@@ -743,7 +746,7 @@ async def main():
             encoder.output = [output] + encoder_outputs
             encoder_running = encoder.running
             if not encoder_running:
-                picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+                encoder.start(quality=Quality.VERY_HIGH)
             output.start()
             time.sleep(5)
             output.stop()
@@ -780,7 +783,7 @@ async def main():
                 encoder_outputs = [encoder_outputs]
             encoder.output = [output] + encoder_outputs
             if not encoder.running:
-                picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+                encoder.start(quality=Quality.VERY_HIGH)
             output.start()
 
         try:
