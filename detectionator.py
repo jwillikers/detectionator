@@ -614,6 +614,12 @@ async def main():
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
+                lores={
+                    # Only Pi 5 and newer can use formats besides YUV here.
+                    # This avoids having to convert the image format for OpenCV later.
+                    "format": "RGB888",
+                    "size": (low_resolution_width, low_resolution_height),
+                },
             )
         else:
             config = picam2.create_still_configuration(
