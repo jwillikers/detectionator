@@ -382,30 +382,28 @@ async def detect_and_record(
             # Autofocus
             if len(matches) == 0:
                 await asyncio.sleep(0.5)
-                continue
-
-            last_detection_time = datetime.datetime.now()
-            best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
-            match_box = best_match[1]
-            adjusted_focal_point = scale(
-                (
-                    match_box[0],
-                    match_box[1],
-                    abs(match_box[2] - match_box[0]),
-                    abs(match_box[3] - match_box[1]),
-                ),
-                scaler_crop_maximum,
-                (low_resolution_width, low_resolution_height),
-            )
-            picam2.set_controls({"AfWindows": [adjusted_focal_point]})
-            focus_cycle_job = None
-            if has_autofocus:
-                focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            if has_autofocus:
-                if not picam2.wait(focus_cycle_job):
-                    logger.warning("Autofocus cycle failed.")
-            await asyncio.sleep(gap)
-
+            else:
+                last_detection_time = datetime.datetime.now()
+                best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
+                match_box = best_match[1]
+                adjusted_focal_point = scale(
+                    (
+                        match_box[0],
+                        match_box[1],
+                        abs(match_box[2] - match_box[0]),
+                        abs(match_box[3] - match_box[1]),
+                    ),
+                    scaler_crop_maximum,
+                    (low_resolution_width, low_resolution_height),
+                )
+                picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+                focus_cycle_job = None
+                if has_autofocus:
+                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
+                if has_autofocus:
+                    if not picam2.wait(focus_cycle_job):
+                        logger.warning("Autofocus cycle failed.")
+                await asyncio.sleep(gap)
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, model, labels, match)
         output.stop()
