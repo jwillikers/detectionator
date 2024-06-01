@@ -354,7 +354,7 @@ async def detect_and_record(
         image = picam2.capture_array("lores")
         matches = inference_tensorflow(image, model, labels, match)
         if len(matches) == 0:
-            await asyncio.sleep(0.075)
+            await asyncio.sleep(0.2)
             continue
 
         last_detection_time = datetime.datetime.now()
