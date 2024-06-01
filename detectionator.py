@@ -371,7 +371,7 @@ async def detect_and_record(
         encoder_outputs = encoder.output
         if not isinstance(encoder_outputs, list):
             encoder_outputs = [encoder_outputs]
-        encoder.output([output] + encoder_outputs)
+        encoder.output = [output] + encoder_outputs
         encoder_running = encoder.running
         if not encoder_running:
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
@@ -407,7 +407,7 @@ async def detect_and_record(
         output.stop()
         if not encoder_running:
             encoder.stop()
-        encoder.output(encoder_outputs)
+        encoder.output = encoder_outputs
         frame += 1
 
 
