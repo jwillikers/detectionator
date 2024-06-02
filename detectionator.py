@@ -623,7 +623,9 @@ async def main():
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
-                format="RGB888",
+                main={
+                    "format": "RGB888",
+                },
                 lores={
                     # Only Pi 5 and newer can use formats besides YUV here.
                     # This avoids having to convert the image format for OpenCV later.
@@ -645,7 +647,9 @@ async def main():
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
-                format="RGB888",
+                main={
+                    "format": "RGB888",
+                },
                 lores={
                     # Only Pi 5 and newer can use formats besides YUV here.
                     # This avoids having to convert the image format for OpenCV later.
