@@ -29,6 +29,10 @@ from exif_utils import (
 )
 
 
+from xmp_utils import (
+    xmp_xml,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -393,13 +397,22 @@ async def detect_and_record(
         matches_name = "detection"
         if labels:
             matches_name = "-".join([i[2] for i in matches])
+        file = os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
         ffmpeg_command = "-timestamp now "
         if gps_mp4_metadata:
             ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
+            with open(file + ".xmp", "w") as xmp_file:
+                xmp_file.write(
+                    xmp_xml(
+                        gps_mp4_metadata["altitude"],
+                        gps_mp4_metadata["latitude"],
+                        gps_mp4_metadata["longitude"],
+                    )
+                )
             logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
         else:
             logger.warning("No GPS fix")
-        ffmpeg_command += os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
+        ffmpeg_command += file
         output = FfmpegOutput(ffmpeg_command, audio=audio)
         encoder_outputs = encoder.output
         if not isinstance(encoder_outputs, list):
@@ -472,7 +485,6 @@ async def detect_and_record(
                 "FrameRate": 30,
             }
         )
-        # todo Write GPS exif data here using an XMP sidecar file.
         frame += 1
 
 
@@ -802,14 +814,21 @@ async def main():
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
             ffmpeg_command = "-timestamp now "
+            file = os.path.join(output_directory, f"sample-recording-{timestamp}.mp4")
             if gps_mp4_metadata:
                 ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
+                with open(file + ".xmp", "w") as xmp_file:
+                    xmp_file.write(
+                        xmp_xml(
+                            gps_mp4_metadata["altitude"],
+                            gps_mp4_metadata["latitude"],
+                            gps_mp4_metadata["longitude"],
+                        )
+                    )
                 logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
             else:
                 logger.warning("No GPS fix")
-            ffmpeg_command += os.path.join(
-                output_directory, f"sample-recording-{timestamp}.mp4"
-            )
+            ffmpeg_command += file
             output = FfmpegOutput(ffmpeg_command, audio=args.audio)
             encoder_outputs = encoder.output
             if not isinstance(encoder_outputs, list):
@@ -824,7 +843,6 @@ async def main():
             if not encoder_running:
                 picam2.stop_encoder(encoder)
             encoder.output = encoder_outputs
-            # todo Write GPS exif data here using an XMP sidecar file.
 
         async def record_sample_signal_handler():
             await record_sample(gps_mp4_metadata)
