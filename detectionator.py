@@ -447,6 +447,7 @@ async def detect_and_record(
                             (low_resolution_width, low_resolution_height),
                         )
                     )
+                picam2.set_controls({"AfWindows": adjusted_match_boxes})
                 focus_cycle_job = None
                 if has_autofocus:
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
@@ -461,7 +462,6 @@ async def detect_and_record(
         if not encoder_running:
             picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
-        # Use slower autofocus speed for video as it reduces jitter.
         picam2.set_controls(
             {
                 "AfSpeed": autofocus_speed,
@@ -674,6 +674,8 @@ async def main():
                 # Minimize the time it takes to autofocus by setting the frame rate.
                 # https://github.com/raspberrypi/picamera2/issues/884
                 controls={
+                    # todo Consider using a less stringent framerate for detections?
+                    # Possible not good for streaming.
                     "FrameRate": 30,
                     "HdrMode": controls.HdrModeEnum.SingleExposure,
                     # "NoiseReductionMode": controls.draft.NoiseReductionMode.Fast,
