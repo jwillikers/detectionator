@@ -363,7 +363,7 @@ async def detect_and_record(
             matches_name = "-".join([i[2] for i in matches])
         ffmpeg_command = ""
         if gps_mp4_metadata:
-            # ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+            ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
             logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
         else:
             logger.warning("No GPS fix")
@@ -733,7 +733,7 @@ async def main():
                     logger.warning("Autofocus cycle failed.")
             ffmpeg_command = ""
             if gps_mp4_metadata:
-                # ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+                ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
                 logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
             else:
                 logger.warning("No GPS fix")
