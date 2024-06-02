@@ -276,19 +276,24 @@ async def detect_and_capture(
             continue
 
         # Autofocus
-        best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
-        match_box = best_match[1]
-        adjusted_focal_point = scale(
-            (
-                match_box[0],
-                match_box[1],
-                abs(match_box[2] - match_box[0]),
-                abs(match_box[3] - match_box[1]),
-            ),
-            scaler_crop_maximum,
-            (low_resolution_width, low_resolution_height),
-        )
-        picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+        match_boxes = [
+            match[1] for match in sorted(matches, key=lambda x: x[0], reverse=True)
+        ]
+        adjusted_match_boxes = []
+        for match_box in match_boxes:
+            adjusted_match_boxes.append(
+                scale(
+                    (
+                        match_box[0],
+                        match_box[1],
+                        abs(match_box[2] - match_box[0]),
+                        abs(match_box[3] - match_box[1]),
+                    ),
+                    scaler_crop_maximum,
+                    (low_resolution_width, low_resolution_height),
+                )
+            )
+        picam2.set_controls({"AfWindows": adjusted_match_boxes})
         focus_cycle_job = None
         if has_autofocus:
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
@@ -384,19 +389,25 @@ async def detect_and_record(
                 await asyncio.sleep(0.3)
             else:
                 last_detection_time = datetime.datetime.now()
-                best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
-                match_box = best_match[1]
-                adjusted_focal_point = scale(
-                    (
-                        match_box[0],
-                        match_box[1],
-                        abs(match_box[2] - match_box[0]),
-                        abs(match_box[3] - match_box[1]),
-                    ),
-                    scaler_crop_maximum,
-                    (low_resolution_width, low_resolution_height),
-                )
-                picam2.set_controls({"AfWindows": [adjusted_focal_point]})
+                match_boxes = [
+                    match[1]
+                    for match in sorted(matches, key=lambda x: x[0], reverse=True)
+                ]
+                adjusted_match_boxes = []
+                for match_box in match_boxes:
+                    adjusted_match_boxes.append(
+                        scale(
+                            (
+                                match_box[0],
+                                match_box[1],
+                                abs(match_box[2] - match_box[0]),
+                                abs(match_box[3] - match_box[1]),
+                            ),
+                            scaler_crop_maximum,
+                            (low_resolution_width, low_resolution_height),
+                        )
+                    )
+                picam2.set_controls({"AfWindows": adjusted_match_boxes})
                 focus_cycle_job = None
                 if has_autofocus:
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
