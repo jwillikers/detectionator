@@ -282,9 +282,7 @@ async def detect_and_capture(
             continue
 
         # Autofocus
-        match_boxes = [
-            match[1] for match in sorted(matches, key=lambda x: x[0], reverse=True)
-        ]
+        match_boxes = [m[1] for m in sorted(matches, key=lambda x: x[0], reverse=True)]
         adjusted_match_boxes = []
         for match_box in match_boxes:
             adjusted_match_boxes.append(
@@ -447,8 +445,7 @@ async def detect_and_record(
                 last_detection_time = datetime.datetime.now()
                 # Autofocus
                 match_boxes = [
-                    match[1]
-                    for match in sorted(matches, key=lambda x: x[0], reverse=True)
+                    m[1] for m in sorted(matches, key=lambda x: x[0], reverse=True)
                 ]
                 adjusted_match_boxes = []
                 for match_box in match_boxes:
