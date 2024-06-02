@@ -676,13 +676,6 @@ async def main():
         time.sleep(1)
         picam2.start()
 
-        def interrupt_signal_handler(_sig, _frame):
-            logger.info("You pressed Ctrl+C!")
-            picam2.stop()
-            sys.exit(0)
-
-        signal.signal(signal.SIGINT, interrupt_signal_handler)
-
         gps_exif_metadata = {}
         gps_mp4_metadata = {}
 
@@ -703,6 +696,7 @@ async def main():
             else:
                 logger.warning("No GPS fix")
 
+            asyncio.sleep(0)
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
@@ -718,7 +712,7 @@ async def main():
                 format="jpeg",
             )
 
-        def capture_sample_signal_handler(_sig, _frame):
+        def capture_sample_signal_handler():
             capture_sample(gps_exif_metadata)
 
         # Record a five second video sample.
@@ -727,6 +721,7 @@ async def main():
             focus_cycle_job = None
             if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            asyncio.sleep(0)
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
@@ -748,19 +743,33 @@ async def main():
             if not encoder_running:
                 encoder.start(quality=Quality.VERY_HIGH)
             output.start()
-            time.sleep(5)
+            asyncio.sleep(5)
             output.stop()
             if not encoder_running:
                 encoder.stop()
             encoder.output = encoder_outputs
 
-        def record_sample_signal_handler(_sig, _frame):
+        def record_sample_signal_handler():
             record_sample(gps_mp4_metadata)
 
+        loop = asyncio.get_event_loop()
+
+        def interrupt_signal_handler():
+            logger.info("You pressed Ctrl+C!")
+            picam2.stop()
+            loop.stop()
+
+        loop.add_signal_handler(
+            signal.SIGINT, asyncio.create_task(interrupt_signal_handler())
+        )
         if args.capture_mode == "video":
-            signal.signal(signal.SIGUSR1, record_sample_signal_handler)
+            loop.add_signal_handler(
+                signal.SIGUSR1, asyncio.create_task(record_sample_signal_handler())
+            )
         else:
-            signal.signal(signal.SIGUSR1, capture_sample_signal_handler)
+            loop.add_signal_handler(
+                signal.SIGUSR1, asyncio.create_task(capture_sample_signal_handler())
+            )
 
         if args.startup_capture:
             if args.capture_mode == "video":
