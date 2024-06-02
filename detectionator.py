@@ -349,6 +349,7 @@ async def detect_and_record(
     low_resolution_width,
     low_resolution_height,
     has_autofocus,
+    autofocus_speed,
     output_directory: pathlib.Path,
     frame: int,
     gap: float,
@@ -363,6 +364,30 @@ async def detect_and_record(
             continue
 
         last_detection_time = datetime.datetime.now()
+
+        # Autofocus
+        match_boxes = [
+            match[1] for match in sorted(matches, key=lambda x: x[0], reverse=True)
+        ]
+        adjusted_match_boxes = []
+        for match_box in match_boxes:
+            adjusted_match_boxes.append(
+                scale(
+                    (
+                        match_box[0],
+                        match_box[1],
+                        abs(match_box[2] - match_box[0]),
+                        abs(match_box[3] - match_box[1]),
+                    ),
+                    scaler_crop_maximum,
+                    (low_resolution_width, low_resolution_height),
+                )
+            )
+        picam2.set_controls({"AfWindows": adjusted_match_boxes})
+        focus_cycle_job = None
+        if has_autofocus:
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+
         matches_name = "detection"
         if labels:
             matches_name = "-".join([i[2] for i in matches])
@@ -381,7 +406,14 @@ async def detect_and_record(
         encoder_running = encoder.running
         if not encoder_running:
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+
+        if has_autofocus:
+            if not picam2.wait(focus_cycle_job):
+                logger.warning("Autofocus cycle failed.")
         output.start()
+
+        # Use slower autofocus speed for video as it reduces jitter.
+        picam2.set_controls({"AfSpeed": controls.AfSpeedEnum.Normal})
 
         while (datetime.datetime.now() - last_detection_time).seconds <= 5:
             # Autofocus
@@ -389,6 +421,7 @@ async def detect_and_record(
                 await asyncio.sleep(0.3)
             else:
                 last_detection_time = datetime.datetime.now()
+                # Autofocus
                 match_boxes = [
                     match[1]
                     for match in sorted(matches, key=lambda x: x[0], reverse=True)
@@ -407,7 +440,6 @@ async def detect_and_record(
                             (low_resolution_width, low_resolution_height),
                         )
                     )
-                picam2.set_controls({"AfWindows": adjusted_match_boxes})
                 focus_cycle_job = None
                 if has_autofocus:
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
@@ -421,6 +453,8 @@ async def detect_and_record(
         if not encoder_running:
             picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
+        # Use slower autofocus speed for video as it reduces jitter.
+        picam2.set_controls({"AfSpeed": autofocus_speed})
         frame += 1
 
 
@@ -860,6 +894,7 @@ async def main():
                             low_resolution_width=low_resolution_width,
                             low_resolution_height=low_resolution_height,
                             has_autofocus=has_autofocus,
+                            autofocus_speed=autofocus_speed,
                             output_directory=output_directory,
                             frame=frame,
                             gap=args.gap,
