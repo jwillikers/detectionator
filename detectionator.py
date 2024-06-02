@@ -375,7 +375,7 @@ async def detect_and_record(
         encoder.output = [output] + encoder_outputs
         encoder_running = encoder.running
         if not encoder_running:
-            encoder.start(quality=Quality.VERY_HIGH)
+            picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
         output.start()
 
         while (datetime.datetime.now() - last_detection_time).seconds <= 3:
@@ -408,7 +408,7 @@ async def detect_and_record(
             matches = inference_tensorflow(image, model, labels, match)
         output.stop()
         if not encoder_running:
-            encoder.stop()
+            picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
         frame += 1
 
@@ -747,12 +747,12 @@ async def main():
             encoder.output = [output] + encoder_outputs
             encoder_running = encoder.running
             if not encoder_running:
-                encoder.start(quality=Quality.VERY_HIGH)
+                picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
             output.start()
             asyncio.sleep(5)
             output.stop()
             if not encoder_running:
-                encoder.stop()
+                picam2.stop_encoder(encoder)
             encoder.output = encoder_outputs
 
         def record_sample_signal_handler():
@@ -800,7 +800,7 @@ async def main():
                 encoder_outputs = [encoder_outputs]
             encoder.output = [output] + encoder_outputs
             if not encoder.running:
-                encoder.start(quality=Quality.VERY_HIGH)
+                picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
             output.start()
 
         try:
