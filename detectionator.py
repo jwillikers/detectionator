@@ -760,15 +760,17 @@ async def main():
             loop.stop()
 
         loop.add_signal_handler(
-            signal.SIGINT, asyncio.create_task(interrupt_signal_handler())
+            signal.SIGINT, lambda: asyncio.create_task(interrupt_signal_handler())
         )
         if args.capture_mode == "video":
             loop.add_signal_handler(
-                signal.SIGUSR1, asyncio.create_task(record_sample_signal_handler())
+                signal.SIGUSR1,
+                lambda: asyncio.create_task(record_sample_signal_handler()),
             )
         else:
             loop.add_signal_handler(
-                signal.SIGUSR1, asyncio.create_task(capture_sample_signal_handler())
+                signal.SIGUSR1,
+                lambda: asyncio.create_task(capture_sample_signal_handler()),
             )
 
         if args.startup_capture:
