@@ -443,7 +443,7 @@ async def main():
     parser.add_argument(
         "--burst",
         help="The number of pictures to take after a successful detection.",
-        default=3,
+        default=1,
         type=int,
     )
     parser.add_argument(
