@@ -393,7 +393,7 @@ async def detect_and_record(
             matches_name = "-".join([i[2] for i in matches])
         ffmpeg_command = ""
         if gps_mp4_metadata:
-            ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+            ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
             logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
         else:
             logger.warning("No GPS fix")
@@ -422,10 +422,12 @@ async def detect_and_record(
 
         output.start()
 
+        await asyncio.sleep(0.5)
+
         while (datetime.datetime.now() - last_detection_time).seconds <= 5:
             # Autofocus
             if len(matches) == 0:
-                await asyncio.sleep(0.4)
+                await asyncio.sleep(0.6)
             else:
                 last_detection_time = datetime.datetime.now()
                 # Autofocus
@@ -454,7 +456,7 @@ async def detect_and_record(
                 if has_autofocus:
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.6)
                 # await asyncio.sleep(gap)
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, model, labels, match)
@@ -468,6 +470,7 @@ async def detect_and_record(
                 "FrameRate": 30,
             }
         )
+        # todo Write GPS exif data here using an XMP sidecar file.
         frame += 1
 
 
@@ -798,7 +801,9 @@ async def main():
                     logger.warning("Autofocus cycle failed.")
             ffmpeg_command = ""
             if gps_mp4_metadata:
-                ffmpeg_command += f"-metadata location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+                # Add '-movflags frag_keyframe+empty_moov'?
+                # -timestamp
+                ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
                 logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
             else:
                 logger.warning("No GPS fix")
@@ -819,6 +824,7 @@ async def main():
             if not encoder_running:
                 picam2.stop_encoder(encoder)
             encoder.output = encoder_outputs
+            # todo Write GPS exif data here using an XMP sidecar file.
 
         async def record_sample_signal_handler():
             await record_sample(gps_mp4_metadata)
