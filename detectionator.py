@@ -719,7 +719,7 @@ async def main():
             )
 
         async def capture_sample_signal_handler():
-            capture_sample(gps_exif_metadata)
+            await capture_sample(gps_exif_metadata)
 
         # Record a five second video sample.
         async def record_sample(gps_mp4_metadata: dict):
@@ -756,7 +756,7 @@ async def main():
             encoder.output = encoder_outputs
 
         async def record_sample_signal_handler():
-            record_sample(gps_mp4_metadata)
+            await record_sample(gps_mp4_metadata)
 
         loop = asyncio.get_event_loop()
 
