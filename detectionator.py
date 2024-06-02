@@ -383,7 +383,7 @@ async def detect_and_record(
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
         output.start()
 
-        while (datetime.datetime.now() - last_detection_time).seconds <= 3:
+        while (datetime.datetime.now() - last_detection_time).seconds <= 5:
             # Autofocus
             if len(matches) == 0:
                 await asyncio.sleep(0.3)
