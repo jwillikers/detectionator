@@ -143,6 +143,8 @@ async def update_gps_mp4_metadata(gpsd: gps.aiogps.aiogps, gps_mp4_metadata: dic
                 gps_mp4_metadata["latitude"] = gpsd.fix.latitude
             if gps.isfinite(gpsd.fix.longitude):
                 gps_mp4_metadata["longitude"] = gpsd.fix.longitude
+            if gps.isfinite(gpsd.fix.altitude):
+                gps_mp4_metadata["altitude"] = gpsd.fix.altitude
             logger.debug("Updated MP4 GPS data.")
             await asyncio.sleep(600)
     except asyncio.IncompleteReadError:
@@ -393,7 +395,7 @@ async def detect_and_record(
             matches_name = "-".join([i[2] for i in matches])
         ffmpeg_command = ""
         if gps_mp4_metadata:
-            ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+            ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
             logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
         else:
             logger.warning("No GPS fix")
@@ -803,7 +805,7 @@ async def main():
             if gps_mp4_metadata:
                 # Add '-movflags frag_keyframe+empty_moov'?
                 # -timestamp
-                ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']} "
+                ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
                 logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
             else:
                 logger.warning("No GPS fix")
