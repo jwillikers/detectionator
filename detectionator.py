@@ -381,7 +381,7 @@ async def detect_and_record(
         while (datetime.datetime.now() - last_detection_time).seconds <= 3:
             # Autofocus
             if len(matches) == 0:
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
             else:
                 last_detection_time = datetime.datetime.now()
                 best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
