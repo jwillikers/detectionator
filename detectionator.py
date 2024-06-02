@@ -393,7 +393,7 @@ async def detect_and_record(
         matches_name = "detection"
         if labels:
             matches_name = "-".join([i[2] for i in matches])
-        ffmpeg_command = ""
+        ffmpeg_command = "-timestamp now "
         if gps_mp4_metadata:
             ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
             logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
@@ -801,10 +801,8 @@ async def main():
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
-            ffmpeg_command = ""
+            ffmpeg_command = "-timestamp now "
             if gps_mp4_metadata:
-                # Add '-movflags frag_keyframe+empty_moov'?
-                # -timestamp
                 ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
                 logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
             else:
