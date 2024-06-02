@@ -369,8 +369,6 @@ async def detect_and_record(
             await asyncio.sleep(0.2)
             continue
 
-        last_detection_time = datetime.datetime.now()
-
         # Autofocus
         match_boxes = [
             match[1] for match in sorted(matches, key=lambda x: x[0], reverse=True)
@@ -440,6 +438,7 @@ async def detect_and_record(
 
         await asyncio.sleep(0.5)
 
+        last_detection_time = datetime.datetime.now()
         while (datetime.datetime.now() - last_detection_time).seconds <= 5:
             # Autofocus
             if len(matches) == 0:
