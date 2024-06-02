@@ -404,7 +404,7 @@ async def detect_and_record(
         ffmpeg_command = ""
         if gps_mp4_metadata:
             # +41.4082+002.1852+027.119/
-            ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']} "
+            ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']}/ -metadata:g location-eng={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']}/ "
             logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
         else:
             logger.warning("No GPS fix")
@@ -438,7 +438,7 @@ async def detect_and_record(
         while (datetime.datetime.now() - last_detection_time).seconds <= 5:
             # Autofocus
             if len(matches) == 0:
-                await asyncio.sleep(0.6)
+                await asyncio.sleep(1)
             else:
                 last_detection_time = datetime.datetime.now()
                 # Autofocus
@@ -467,7 +467,7 @@ async def detect_and_record(
                 if has_autofocus:
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
-                await asyncio.sleep(0.6)
+                await asyncio.sleep(1)
                 # await asyncio.sleep(gap)
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, model, labels, match)
@@ -814,7 +814,7 @@ async def main():
             if gps_mp4_metadata:
                 # Add '-movflags frag_keyframe+empty_moov'?
                 # -timestamp
-                ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']} "
+                ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']}/ -metadata:g location-eng={gps_mp4_metadata['longitude']}{gps_mp4_metadata['latitude']}/ "
                 logger.debug(f"MP4 GPS metadata: {gps_mp4_metadata}")
             else:
                 logger.warning("No GPS fix")
