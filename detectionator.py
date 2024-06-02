@@ -635,6 +635,9 @@ async def main():
                 display=None,
                 main={
                     "format": "RGB888",
+                    "size": (1920, 1080),
+                    # 720p
+                    # "size": (1280, 720),
                 },
                 lores={
                     # Only Pi 5 and newer can use formats besides YUV here.
