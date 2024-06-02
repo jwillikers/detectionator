@@ -629,7 +629,7 @@ async def main():
                 controls={
                     "FrameRate": 30,
                     "HdrMode": controls.HdrModeEnum.SingleExposure,
-                    "NoiseReductionMode": controls.draft.NoiseReductionMode.Fast,
+                    # "NoiseReductionMode": controls.draft.NoiseReductionMode.Fast,
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
@@ -657,7 +657,7 @@ async def main():
                     # todo Add config option for this. Likely, Night is also an important configuration choice.
                     # todo Set this to Night based off of GPS coordinates and sunset time or better yet a light sensor.
                     "HdrMode": controls.HdrModeEnum.SingleExposure,
-                    "NoiseReductionMode": controls.draft.NoiseReductionModeEnum.HighQuality,
+                    # "NoiseReductionMode": controls.draft.NoiseReductionModeEnum.HighQuality,
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
