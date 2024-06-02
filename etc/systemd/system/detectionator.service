@@ -5,6 +5,7 @@ After=multi-user.target
 [Service]
 Type=notify
 NotifyAccess=main
+Environment=LIBCAMERA_LOG_LEVELS=INFO
 Environment=PYTHONPATH=/usr/local/lib/python3/dist-packages:/usr/lib/python3/dist-packages
 Environment=PYTHONUNBUFFERED=true
 ExecStartPre=/bin/sleep 1
