@@ -573,6 +573,7 @@ async def main():
     if not isinstance(numeric_log_level, int):
         raise ValueError(f"Invalid log level: {args.log_level}")
     logger.setLevel(numeric_log_level)
+    logging.getLogger("picamera2").setLevel(numeric_log_level)
 
     if args.burst < 1:
         logger.warn(
@@ -683,6 +684,7 @@ async def main():
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
                 main={
+                    # I think this format needs to be "XRGB8888" for the H264 encoder.
                     # "format": "RGB888",
                     "size": (1920, 1080),
                     # 720p
