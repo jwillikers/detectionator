@@ -146,13 +146,13 @@ async def update_gps_mp4_metadata(gpsd: gps.aiogps.aiogps, gps_mp4_metadata: dic
                 await asyncio.sleep(10)
                 continue
             if gps.isfinite(gpsd.fix.latitude):
-                gps_mp4_metadata["latitude"] = positive_negative_sign(
-                    gpsd.fix.latitude
-                ) + str(gpsd.fix.latitude)
+                gps_mp4_metadata["latitude"] = (
+                    positive_negative_sign(gpsd.fix.latitude) + gpsd.fix.latitude
+                )
             if gps.isfinite(gpsd.fix.longitude):
-                gps_mp4_metadata["longitude"] = positive_negative_sign(
-                    gpsd.fix.longitude
-                ) + str(gpsd.fix.longitude)
+                gps_mp4_metadata["longitude"] = (
+                    positive_negative_sign(gpsd.fix.longitude) + gpsd.fix.longitude
+                )
             logger.debug("Updated MP4 GPS data.")
             await asyncio.sleep(600)
     except asyncio.IncompleteReadError:
