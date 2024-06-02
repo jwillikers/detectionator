@@ -683,7 +683,7 @@ async def main():
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
                 main={
-                    "format": "RGB888",
+                    # "format": "RGB888",
                     "size": (1920, 1080),
                     # 720p
                     # "size": (1280, 720),
