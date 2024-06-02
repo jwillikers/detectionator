@@ -689,7 +689,7 @@ async def main():
         # There seems to be extreme performance issues when triggering a sample video this way.
 
         # Take a sample photograph with both high and low resolution images for reference.
-        def capture_sample(gps_exif_metadata):
+        async def capture_sample(gps_exif_metadata):
             timestamp = int(time.time())
 
             focus_cycle_job = None
@@ -702,7 +702,7 @@ async def main():
             else:
                 logger.warning("No GPS fix")
 
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
@@ -718,16 +718,16 @@ async def main():
                 format="jpeg",
             )
 
-        def capture_sample_signal_handler():
+        async def capture_sample_signal_handler():
             capture_sample(gps_exif_metadata)
 
         # Record a five second video sample.
-        def record_sample(gps_mp4_metadata: dict):
+        async def record_sample(gps_mp4_metadata: dict):
             timestamp = int(time.time())
             focus_cycle_job = None
             if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
@@ -749,18 +749,18 @@ async def main():
             if not encoder_running:
                 picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
             output.start()
-            asyncio.sleep(5)
+            await asyncio.sleep(5)
             output.stop()
             if not encoder_running:
                 picam2.stop_encoder(encoder)
             encoder.output = encoder_outputs
 
-        def record_sample_signal_handler():
+        async def record_sample_signal_handler():
             record_sample(gps_mp4_metadata)
 
         loop = asyncio.get_event_loop()
 
-        def interrupt_signal_handler():
+        async def interrupt_signal_handler():
             logger.info("You pressed Ctrl+C!")
             picam2.stop()
             loop.stop()
