@@ -629,8 +629,7 @@ async def main():
                 controls={
                     "FrameRate": 30,
                     "HdrMode": controls.HdrModeEnum.SingleExposure,
-                    # NoiseReductionMode doesn't exist?
-                    # "NoiseReductionMode": controls.NoiseReductionMode.Fast,
+                    "NoiseReductionMode": controls.draft.NoiseReductionMode.Fast,
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
