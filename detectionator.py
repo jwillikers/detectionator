@@ -381,7 +381,7 @@ async def detect_and_record(
         while (datetime.datetime.now() - last_detection_time).seconds <= 3:
             # Autofocus
             if len(matches) == 0:
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.3)
             else:
                 last_detection_time = datetime.datetime.now()
                 best_match = sorted(matches, key=lambda x: x[0], reverse=True)[0]
@@ -796,44 +796,47 @@ async def main():
                     systemd_notifier = sdnotify.SystemdNotifier()
                     systemd_notifier.notify("READY=1")
                     systemd_notifier.notify(f"STATUS=Looking for {match}")
-                await asyncio.gather(
-                    update_gps_exif_metadata(gpsd, gps_exif_metadata)
-                    if args.capture_mode == "still"
-                    else update_gps_mp4_metadata(gpsd, gps_mp4_metadata),
-                    detect_and_capture(
-                        picam2=picam2,
-                        model=args.model,
-                        labels=labels,
-                        match=match,
-                        gps_exif_metadata=gps_exif_metadata,
-                        scaler_crop_maximum=scaler_crop_maximum,
-                        low_resolution_width=low_resolution_width,
-                        low_resolution_height=low_resolution_height,
-                        has_autofocus=has_autofocus,
-                        burst=args.burst,
-                        output_directory=output_directory,
-                        frame=frame,
-                        gap=args.gap,
+                if args.capture_mode == "still":
+                    await asyncio.gather(
+                        update_gps_exif_metadata(gpsd, gps_exif_metadata),
+                        detect_and_capture(
+                            picam2=picam2,
+                            model=args.model,
+                            labels=labels,
+                            match=match,
+                            gps_exif_metadata=gps_exif_metadata,
+                            scaler_crop_maximum=scaler_crop_maximum,
+                            low_resolution_width=low_resolution_width,
+                            low_resolution_height=low_resolution_height,
+                            has_autofocus=has_autofocus,
+                            burst=args.burst,
+                            output_directory=output_directory,
+                            frame=frame,
+                            gap=args.gap,
+                        ),
+                        return_exceptions=True,
                     )
-                    if args.capture_mode == "still"
-                    else detect_and_record(
-                        picam2=picam2,
-                        model=args.model,
-                        labels=labels,
-                        match=match,
-                        gps_mp4_metadata=gps_mp4_metadata,
-                        scaler_crop_maximum=scaler_crop_maximum,
-                        low_resolution_width=low_resolution_width,
-                        low_resolution_height=low_resolution_height,
-                        has_autofocus=has_autofocus,
-                        output_directory=output_directory,
-                        frame=frame,
-                        gap=args.gap,
-                        encoder=encoder,
-                        audio=args.audio,
-                    ),
-                    return_exceptions=True,
-                )
+                else:
+                    await asyncio.gather(
+                        update_gps_mp4_metadata(gpsd, gps_mp4_metadata),
+                        detect_and_record(
+                            picam2=picam2,
+                            model=args.model,
+                            labels=labels,
+                            match=match,
+                            gps_mp4_metadata=gps_mp4_metadata,
+                            scaler_crop_maximum=scaler_crop_maximum,
+                            low_resolution_width=low_resolution_width,
+                            low_resolution_height=low_resolution_height,
+                            has_autofocus=has_autofocus,
+                            output_directory=output_directory,
+                            frame=frame,
+                            gap=args.gap,
+                            encoder=encoder,
+                            audio=args.audio,
+                        ),
+                        return_exceptions=True,
+                    )
         except asyncio.CancelledError:
             return
         except Exception as exc:
