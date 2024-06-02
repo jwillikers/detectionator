@@ -132,10 +132,12 @@ async def update_gps_mp4_metadata(gpsd: gps.aiogps.aiogps, gps_mp4_metadata: dic
             await gpsd.read()
             if not (gps.PACKET_SET & gpsd.valid):
                 logger.warning("Failed to receive package from gpsd")
+                await asyncio.sleep(0)
                 continue
 
             if not (gps.MODE_SET & gpsd.valid):
                 logger.debug("GPS session invalid")
+                await asyncio.sleep(0)
                 continue
 
             fix_mode = gpsd.fix.mode
@@ -167,10 +169,12 @@ async def update_gps_exif_metadata(gpsd: gps.aiogps.aiogps, gps_exif_metadata: d
             await gpsd.read()
             if not (gps.PACKET_SET & gpsd.valid):
                 logger.warning("Failed to receive package from gpsd")
+                await asyncio.sleep(0)
                 continue
 
             if not (gps.MODE_SET & gpsd.valid):
                 logger.debug("GPS session invalid")
+                await asyncio.sleep(0)
                 continue
 
             fix_mode = gpsd.fix.mode
