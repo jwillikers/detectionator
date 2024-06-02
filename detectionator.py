@@ -398,7 +398,8 @@ async def detect_and_record(
         if labels:
             matches_name = "-".join([i[2] for i in matches])
         file = os.path.join(output_directory, f"{matches_name}-{frame}.mp4")
-        ffmpeg_command = "-timestamp now "
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        ffmpeg_command = f"-metadata:g creation_time={now} "
         if gps_mp4_metadata:
             ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
             with open(file + ".xmp", "w") as xmp_file:
@@ -813,7 +814,8 @@ async def main():
             if has_autofocus:
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
-            ffmpeg_command = "-timestamp now "
+            now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+            ffmpeg_command = f"-metadata:g creation_time={now} "
             file = os.path.join(output_directory, f"sample-recording-{timestamp}.mp4")
             if gps_mp4_metadata:
                 ffmpeg_command += f"-metadata:g location={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} -metadata:g location-eng={gps_mp4_metadata['longitude']}+{gps_mp4_metadata['latitude']}+{gps_mp4_metadata['altitude']} "
