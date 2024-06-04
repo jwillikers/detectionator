@@ -429,7 +429,6 @@ async def detect_and_record(
         # For video capture, use a faster frame-rate here.
         picam2.set_controls(
             {
-                "AfSpeed": controls.AfSpeedEnum.Normal,
                 "FrameRate": 60,
             }
         )
@@ -480,7 +479,6 @@ async def detect_and_record(
         encoder.output = encoder_outputs
         picam2.set_controls(
             {
-                "AfSpeed": autofocus_speed,
                 "FrameRate": 30,
             }
         )
@@ -756,7 +754,9 @@ async def main():
                     # todo Test continuous autofocus.
                     # "AfMode": controls.AfModeEnum.Continuous,
                     "AfRange": autofocus_range,
-                    "AfSpeed": autofocus_speed,
+                    "AfSpeed": autofocus_speed
+                    if args.capture_mode == "still"
+                    else controls.AfSpeedEnum.Normal,
                 }
             )
         scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
