@@ -427,10 +427,10 @@ async def detect_and_record(
 
         output.start()
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(0.3)
 
         last_detection_time = datetime.datetime.now()
-        while (datetime.datetime.now() - last_detection_time).seconds <= 5:
+        while (datetime.datetime.now() - last_detection_time).seconds <= 6:
             # Autofocus
             if len(matches) == 0:
                 await asyncio.sleep(0.4)
