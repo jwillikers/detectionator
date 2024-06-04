@@ -425,14 +425,6 @@ async def detect_and_record(
             if not picam2.wait(focus_cycle_job):
                 logger.warning("Autofocus cycle failed.")
 
-        # Use slower autofocus speed for video as it reduces jitter.
-        # For video capture, use a faster frame-rate here.
-        picam2.set_controls(
-            {
-                "FrameRate": 60,
-            }
-        )
-
         output.start()
 
         await asyncio.sleep(0.5)
@@ -477,11 +469,6 @@ async def detect_and_record(
         if not encoder_running:
             picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
-        picam2.set_controls(
-            {
-                "FrameRate": 30,
-            }
-        )
         frame += 1
 
 
