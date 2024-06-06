@@ -427,7 +427,7 @@ async def detect_and_record(
 
         output.start()
 
-        await asyncio.sleep(0.3)
+        await asyncio.sleep(0)
 
         last_detection_time = datetime.datetime.now()
         while (datetime.datetime.now() - last_detection_time).seconds <= 6:
@@ -435,7 +435,6 @@ async def detect_and_record(
             if len(matches) == 0:
                 await asyncio.sleep(0.4)
             else:
-                last_detection_time = datetime.datetime.now()
                 # Autofocus
                 match_boxes = [
                     m[1] for m in sorted(matches, key=lambda x: x[0], reverse=True)
@@ -462,6 +461,7 @@ async def detect_and_record(
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
                 await asyncio.sleep(0.2)
+                last_detection_time = datetime.datetime.now()
                 # await asyncio.sleep(gap)
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, model, labels, match)
@@ -630,6 +630,7 @@ async def main():
         autofocus_range = controls.AfRangeEnum.Macro
 
     # Camera Module 3 has a full resolution of 4608x2592.
+    # A scale of 6, really 1/6, results in a resolution of 768x432.
     # A scale of 8, really 1/8, results in a resolution of 576x324 which is still pretty high resolution for close-up detections.
     # A scale of 12, really 1/12, results in a resolution of 384x216.
     # A scale of 16, really 1/16, results in a resolution of 288x162.
