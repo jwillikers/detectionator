@@ -8,21 +8,21 @@ NotifyAccess=main
 Environment=LIBCAMERA_LOG_LEVELS=INFO
 Environment=PYTHONPATH=/usr/local/lib/python3/dist-packages:/usr/lib/python3/dist-packages
 Environment=PYTHONUNBUFFERED=true
-ExecStartPre=/bin/sleep 1
+ExecStartPre=/bin/sleep 5
 ExecStart=/home/detectionator/venv/bin/python /usr/local/bin/detectionator.py --systemd-notify
 Restart=on-failure
 RestartSec=10
 KillMode=process
 
 # Steal all of the CPU time.
-Nice=-19
-CPUSchedulingPolicy=fifo
-CPUSchedulingPriority=90
+#Nice=-19
+#CPUSchedulingPolicy=fifo
+#CPUSchedulingPriority=90
 User=detectionator
 Group=detectionator
 AmbientCapabilities=CAP_SYS_ADMIN CAP_SYS_NICE
-IOSchedulingClass=realtime
-IOSchedulingPriority=1
+#IOSchedulingClass=realtime
+#IOSchedulingPriority=1
 
 [Install]
 WantedBy=multi-user.target

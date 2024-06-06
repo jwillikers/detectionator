@@ -8,16 +8,16 @@ NotifyAccess=main
 Environment=LIBCAMERA_LOG_LEVELS=INFO
 Environment=PYTHONPATH=/usr/local/lib/python3/dist-packages:/usr/lib/python3/dist-packages
 Environment=PYTHONUNBUFFERED=true
-ExecStartPre=/bin/sleep 1
+ExecStartPre=/bin/sleep 5
 ExecStart=%h/Projects/detectionator/venv/bin/python %h/Projects/detectionator/detectionator.py --systemd-notify
 Restart=on-failure
 RestartSec=10
 KillMode=process
 
 # Steal all of the CPU time.
-Nice=-19
-CPUSchedulingPolicy=fifo
-CPUSchedulingPriority=90
+# Nice=-19
+# CPUSchedulingPolicy=fifo
+# CPUSchedulingPriority=90
 # todo Might need to run service as root for these to take effect.
 # User=jordan
 # Group=jordan
