@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import asyncio
-import configargparse
 import datetime
 from dateutil import parser
 from functools import partial
@@ -12,8 +11,9 @@ import signal
 import sys
 import time
 
-import gps.aiogps
+import configargparse
 import cv2
+import gps.aiogps
 from libcamera import controls
 import numpy as np
 from picamera2 import Picamera2
