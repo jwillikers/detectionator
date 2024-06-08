@@ -687,9 +687,9 @@ async def main():
                 main={
                     # I think this format needs to be "XRGB8888" for the H264 encoder.
                     # "format": "RGB888",
-                    # "size": (1920, 1080),
+                    "size": (1920, 1080),
                     # 720p
-                    "size": (1280, 720),
+                    # "size": (1280, 720),
                 },
                 lores={
                     # Only Pi 5 and newer can use formats besides YUV here.
