@@ -429,12 +429,19 @@ async def detect_and_record(
 
         await asyncio.sleep(0.2)
 
+        minimum_record_seconds = 6
+        consecutive_failed_detections = 0
+        consecutive_failed_detections_to_stop = 5
         last_detection_time = datetime.datetime.now()
-        while (datetime.datetime.now() - last_detection_time).seconds <= 6:
+        while (
+            (datetime.datetime.now() - last_detection_time).seconds
+            <= minimum_record_seconds
+        ) and consecutive_failed_detections < consecutive_failed_detections_to_stop:
             # Autofocus
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, model, labels, match)
             if len(matches) == 0:
+                consecutive_failed_detections += 1
                 await asyncio.sleep(0.4)
             else:
                 # Autofocus
@@ -462,6 +469,7 @@ async def detect_and_record(
                 if has_autofocus:
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
+                consecutive_failed_detections = 0
                 await asyncio.sleep(0.2)
                 last_detection_time = datetime.datetime.now()
         output.stop()
