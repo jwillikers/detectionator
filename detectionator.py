@@ -436,7 +436,7 @@ async def detect_and_record(
         while (
             (datetime.datetime.now() - last_detection_time).seconds
             <= minimum_record_seconds
-        ) or consecutive_failed_detections < consecutive_failed_detections_to_stop:
+        ) and consecutive_failed_detections > consecutive_failed_detections_to_stop:
             # Autofocus
             image = picam2.capture_array("lores")
             matches = inference_tensorflow(image, model, labels, match)
