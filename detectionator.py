@@ -431,7 +431,7 @@ async def detect_and_record(
 
         minimum_record_seconds = 6
         consecutive_failed_detections = 0
-        consecutive_failed_detections_to_stop = 5
+        consecutive_failed_detections_to_stop = 10
         last_detection_time = datetime.datetime.now()
         while (
             (datetime.datetime.now() - last_detection_time).seconds
