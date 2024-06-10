@@ -344,6 +344,11 @@ async def detect_and_capture(
                 signal_function=partial(captured_file, filename, matches),
             )
             frame += 1
+        # Reset focal point
+        # todo Is this necessary when capturing stills?
+        # picam2.set_controls({"AfWindows": []})
+        # if has_autofocus:
+        #     picam2.autofocus_cycle()
         await asyncio.sleep(gap)
 
 
@@ -480,6 +485,10 @@ async def detect_and_record(
         if not encoder_running:
             picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
+        # Reset focal point
+        picam2.set_controls({"AfWindows": []})
+        if has_autofocus:
+            picam2.autofocus_cycle()
         frame += 1
 
 
