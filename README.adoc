@@ -268,6 +268,21 @@ just init
 dtparam=pciex1_gen=3
 dtoverlay=pps-gpio,gpiopin=4
 dtparam=uart0=on
+
+# Allow USB devices to pull the maximum current possible.
+usb_max_current_enable=1
+
+# Recharge the RTC battery.
+dtparam=rtc_bbat_vchg=3000000
+
+# Reduce clockspeeds and temperature limit to reduce the likelihood of crashes.
+# Crashes seem particularly common when recording video.
+arm_freq = 2000
+core_freq = 900
+v3d_freq = 900
+temp_limit = 80
+
+disable_camera_led = 1
 ----
 
 // todo eeprom config
