@@ -555,6 +555,11 @@ async def main():
         default="fast",
     )
     parser.add_argument(
+        "--buffers",
+        help="The number of buffers to use.",
+        type=int,
+    )
+    parser.add_argument(
         "--burst",
         help="The number of pictures to take after a successful detection.",
         default=1,
@@ -573,10 +578,22 @@ async def main():
         help="The path to the config file to use.",
     )
     parser.add_argument(
+        "--frame-rate",
+        help="The frame rate for video.",
+        type=int,
+        default=30,
+    )
+    parser.add_argument(
         "--gap",
         help="The time to wait in between a successful detection and looking for the next detection. This gap is helpful for not capturing too many photographs of a detection, like when a capybara decides to take a nap in front of your camera.",
         default=0.05,
         type=float,
+    )
+    parser.add_argument(
+        "--hdr-mode",
+        choices=["off", "single", "night"],
+        help="The HDR mode.",
+        default="single",
     )
     parser.add_argument("--label", help="Path of the labels file.", type=pathlib.Path)
     parser.add_argument(
@@ -590,6 +607,16 @@ async def main():
     parser.add_argument(
         "--low-resolution-height",
         help="The height to use for the low resolution size.",
+        type=int,
+    )
+    parser.add_argument(
+        "--main-resolution-width",
+        help="The width to use for the main resolution size.",
+        type=int,
+    )
+    parser.add_argument(
+        "--main-resolution-height",
+        help="The height to use for the main resolution size.",
         type=int,
     )
     parser.add_argument(
@@ -690,6 +717,12 @@ async def main():
     elif args.autofocus_range == "macro":
         autofocus_range = controls.AfRangeEnum.Macro
 
+    hdr_mode = controls.HdrModeEnum.SingleExposure
+    if args.hdr_mode == "off":
+        hdr_mode = controls.HdrModeEnum.Off
+    elif args.hdr_mode == "night":
+        hdr_mode = controls.HdrModeEnum.Night
+
     # Camera Module 3 has a full resolution of 4608x2592.
     # A scale of 2, really 1/2, results in a resolution of 2304x1296.
     # A scale of 4, really 1/4, results in a resolution of 1152x648.
@@ -726,6 +759,31 @@ async def main():
             )
             sys.exit(1)
 
+        if args.main_resolution_width:
+            main_resolution_width = args.main_resolution_width
+        else:
+            if args.capture_mode == "video":
+                main_resolution_width = 1920
+            else:
+                main_resolution_width = picam2.sensor_resolution[0]
+
+        if args.main_resolution_height:
+            main_resolution_height = args.main_resolution_height
+        else:
+            if args.capture_mode == "video":
+                main_resolution_height = 1080
+            else:
+                main_resolution_height = picam2.sensor_resolution[1]
+
+        buffers = 2
+        if args.buffers:
+            buffers = args.buffers
+        else:
+            if args.capture_mode == "video":
+                buffers = 4
+            else:
+                buffers = 2
+
         picam2.options["quality"] = 95
         picam2.options["compress_level"] = 0
 
@@ -736,14 +794,14 @@ async def main():
             config = picam2.create_video_configuration(
                 # Use more buffers for a smoother video.
                 # todo Large number of buffers may require dtoverlay=vc4-kms-v3d,cma-512 in /boot/firmware/config.txt
-                buffer_count=4,
+                buffer_count=buffers,
                 # Minimize the time it takes to autofocus by setting the frame rate.
                 # https://github.com/raspberrypi/picamera2/issues/884
                 controls={
                     # todo Consider using a less stringent framerate for detections?
                     # Possible not good for streaming.
-                    "FrameRate": 30,
-                    "HdrMode": controls.HdrModeEnum.SingleExposure,
+                    "FrameRate": args.frame_rate,
+                    "HdrMode": hdr_mode,
                     # "NoiseReductionMode": controls.draft.NoiseReductionMode.Fast,
                     # "NoiseReductionMode": controls.draft.NoiseReductionMode.HighQuality,
                 },
@@ -752,7 +810,7 @@ async def main():
                 main={
                     # I think this format needs to be "XRGB8888" for the H264 encoder.
                     # "format": "RGB888",
-                    "size": (1920, 1080),
+                    "size": (main_resolution_width, main_resolution_height),
                     # 720p
                     # "size": (1280, 720),
                 },
@@ -766,19 +824,20 @@ async def main():
         else:
             config = picam2.create_still_configuration(
                 # Using a buffer seems to reduce the latency between detections.
-                buffer_count=2,
+                buffer_count=buffers,
                 # Minimize the time it takes to autofocus by setting the frame rate.
                 # https://github.com/raspberrypi/picamera2/issues/884
                 # controls={"FrameRate": 30},
                 controls={
                     # todo Add config option for this. Likely, Night is also an important configuration choice.
                     # todo Set this to Night based off of GPS coordinates and sunset time or better yet a light sensor.
-                    "HdrMode": controls.HdrModeEnum.SingleExposure,
+                    "HdrMode": hdr_mode,
                     # "NoiseReductionMode": controls.draft.NoiseReductionModeEnum.HighQuality,
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
                 main={
+                    "size": (main_resolution_width, main_resolution_height),
                     "format": "RGB888",
                 },
                 lores={
