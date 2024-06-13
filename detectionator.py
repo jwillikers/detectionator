@@ -537,6 +537,12 @@ async def main():
         action=argparse.BooleanOptionalAction,
     )
     parser.add_argument(
+        "--autofocus-mode",
+        choices=["auto", "continuous"],
+        help="The autofocus mode.",
+        default="auto",
+    )
+    parser.add_argument(
         "--autofocus-range",
         choices=["normal", "macro", "full"],
         help="The range of lens positions for which to attempt to autofocus.",
@@ -666,6 +672,12 @@ async def main():
 
     logger.info(f"Will take photographs of: {match}")
 
+    autofocus_mode = (
+        controls.AfModeEnum.Auto
+        if args.autofocus_mode == "auto"
+        else controls.AfModeEnum.Continuous
+    )
+
     autofocus_speed = (
         controls.AfSpeedEnum.Fast
         if args.autofocus_speed == "fast"
@@ -733,6 +745,7 @@ async def main():
                     "FrameRate": 30,
                     "HdrMode": controls.HdrModeEnum.SingleExposure,
                     # "NoiseReductionMode": controls.draft.NoiseReductionMode.Fast,
+                    # "NoiseReductionMode": controls.draft.NoiseReductionMode.HighQuality,
                 },
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
@@ -789,9 +802,7 @@ async def main():
             picam2.set_controls(
                 {
                     "AfMetering": controls.AfMeteringEnum.Windows,
-                    "AfMode": controls.AfModeEnum.Auto,
-                    # todo Test continuous autofocus.
-                    # "AfMode": controls.AfModeEnum.Continuous,
+                    "AfMode": autofocus_mode,
                     "AfRange": autofocus_range,
                     "AfSpeed": autofocus_speed
                     if args.capture_mode == "still"
