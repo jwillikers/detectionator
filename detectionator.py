@@ -101,16 +101,18 @@ def inference_tensorflow(image, model, labels, match_labels: list):
     return matches
 
 
-def scale(coord, scaler_crop_maximum, lores):
-    x_offset, y_offset, width, height = coord
+# todo Add some tests to verify this is working as it should.
+def scale(rectangle, scaler_crop_maximum, resolution):
+    x_offset, y_offset, width, height = rectangle
 
     # scaler_crop_maximum represents a larger image than the image we use so we need to account
     x_offset_scm, y_offset_scm, width_scm, height_scm = scaler_crop_maximum
 
+    resolution_width, resolution_height = resolution
+
     # create a scale so that you can scale the preview to the SCM
-    y_scale = height_scm / lores[1]
-    x_scale = width_scm / lores[0]
-    logger.debug("y_scale, x_scale", y_scale, x_scale)
+    y_scale = height_scm / resolution_height
+    x_scale = width_scm / resolution_width
 
     # scale coords to SCM
     y_offset_scaled = int(y_offset * y_scale)
