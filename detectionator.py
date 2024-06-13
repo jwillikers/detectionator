@@ -468,21 +468,14 @@ async def detect_and_record(
         if not encoder_running:
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
 
-        if has_autofocus:
-            await asyncio.sleep(0)
-            if not picam2.wait(focus_cycle_job):
-                logger.warning("Autofocus cycle failed.")
-
         output.start()
 
-        time.sleep(0.1)
-
         if has_autofocus:
-            focus_cycle_job = picam2.autofocus_cycle(wait=False)
             await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
                 logger.warning("Autofocus cycle failed.")
 
+        time.sleep(0.1)
         await asyncio.sleep(0.1)
 
         if has_autofocus:
