@@ -101,6 +101,16 @@ def inference_tensorflow(image, model, labels, match_labels: list):
     return matches
 
 
+# todo Add some unit tests for this.
+def rectangle_coordinates_to_coordinate_width_height(rectangle):
+    return (
+        rectangle[0],
+        rectangle[1],
+        abs(rectangle[2] - rectangle[0]),
+        abs(rectangle[3] - rectangle[1]),
+    )
+
+
 # todo Add some tests to verify this is working as it should.
 def scale(rectangle, scaler_crop_maximum, resolution):
     x_offset, y_offset, width, height = rectangle
@@ -293,12 +303,7 @@ async def detect_and_capture(
         for match_box in match_boxes:
             adjusted_match_boxes.append(
                 scale(
-                    (
-                        match_box[0],
-                        match_box[1],
-                        abs(match_box[2] - match_box[0]),
-                        abs(match_box[3] - match_box[1]),
-                    ),
+                    rectangle_coordinates_to_coordinate_width_height(match_box),
                     scaler_crop_maximum,
                     (low_resolution_width, low_resolution_height),
                 )
@@ -387,12 +392,7 @@ async def detect_and_record(
         for match_box in match_boxes:
             adjusted_match_boxes.append(
                 scale(
-                    (
-                        match_box[0],
-                        match_box[1],
-                        abs(match_box[2] - match_box[0]),
-                        abs(match_box[3] - match_box[1]),
-                    ),
+                    rectangle_coordinates_to_coordinate_width_height(match_box),
                     scaler_crop_maximum,
                     (low_resolution_width, low_resolution_height),
                 )
@@ -491,12 +491,7 @@ async def detect_and_record(
                 for match_box in match_boxes:
                     adjusted_match_boxes.append(
                         scale(
-                            (
-                                match_box[0],
-                                match_box[1],
-                                abs(match_box[2] - match_box[0]),
-                                abs(match_box[3] - match_box[1]),
-                            ),
+                            rectangle_coordinates_to_coordinate_width_height(match_box),
                             scaler_crop_maximum,
                             (low_resolution_width, low_resolution_height),
                         )
