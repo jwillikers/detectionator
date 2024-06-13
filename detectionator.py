@@ -318,6 +318,7 @@ async def detect_and_capture(
             matches_name = "-".join([i[2] for i in matches])
         filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
         if has_autofocus:
+            await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
                 logger.warning("Autofocus cycle failed.")
         picam2.capture_file(
@@ -335,6 +336,7 @@ async def detect_and_capture(
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
             filename = os.path.join(output_directory, f"{matches_name}-{frame}.jpg")
             if has_autofocus:
+                await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
@@ -428,6 +430,7 @@ async def detect_and_record(
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
 
         if has_autofocus:
+            await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
                 logger.warning("Autofocus cycle failed.")
 
@@ -436,12 +439,18 @@ async def detect_and_record(
         time.sleep(0.1)
 
         if has_autofocus:
-            picam2.autofocus_cycle()
+            await asyncio.sleep(0)
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            if not picam2.wait(focus_cycle_job):
+                logger.warning("Autofocus cycle failed.")
 
         await asyncio.sleep(0.1)
 
         if has_autofocus:
-            picam2.autofocus_cycle()
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            await asyncio.sleep(0)
+            if not picam2.wait(focus_cycle_job):
+                logger.warning("Autofocus cycle failed.")
 
         minimum_record_seconds = 6
         consecutive_failed_detections = 0
@@ -458,12 +467,18 @@ async def detect_and_record(
                 consecutive_failed_detections += 1
 
                 if has_autofocus:
-                    picam2.autofocus_cycle()
+                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
+                    await asyncio.sleep(0)
+                    if not picam2.wait(focus_cycle_job):
+                        logger.warning("Autofocus cycle failed.")
 
                 time.sleep(0.2)
 
                 if has_autofocus:
-                    picam2.autofocus_cycle()
+                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
+                    await asyncio.sleep(0)
+                    if not picam2.wait(focus_cycle_job):
+                        logger.warning("Autofocus cycle failed.")
 
                 await asyncio.sleep(0.2)
             else:
@@ -489,7 +504,7 @@ async def detect_and_record(
                 focus_cycle_job = None
                 if has_autofocus:
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
-                if has_autofocus:
+                    await asyncio.sleep(0)
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
                 consecutive_failed_detections = 0
