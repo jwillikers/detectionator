@@ -688,6 +688,12 @@ async def main():
     numeric_log_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_log_level, int):
         raise ValueError(f"Invalid log level: {args.log_level}")
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
     logger.setLevel(numeric_log_level)
     logging.getLogger("picamera2").setLevel(numeric_log_level)
 
