@@ -22,7 +22,8 @@ init gpsd_version="release-3.25":
     distro=$(awk -F= '$1=="ID" { print $2 ;}' /etc/os-release)
     if [ "$distro" = "debian" ]; then
         sudo apt-get --yes install chrony firewalld libatlas-base-dev pps-tools python3-dev python3-picamera2 python3-venv unattended-upgrades \
-            build-essential manpages-dev pkg-config git scons libncurses-dev python3-serial libdbus-1-dev python3-matplotlib
+            build-essential manpages-dev pkg-config git scons libncurses-dev python3-serial libdbus-1-dev python3-matplotlib \
+            hailo-all
     fi
     mkdir --parents "{{ home_directory() }}/Projects"
     if [ ! -d "{{ home_directory() }}/Projects/gpsd" ]; then

@@ -14,6 +14,7 @@ import time
 import configargparse
 import cv2
 import gps.aiogps
+from hailo_inference import HailoInference
 from libcamera import controls
 import numpy as np
 from picamera2 import Picamera2
@@ -44,6 +45,42 @@ def read_label_file(file_path):
         pair = line.strip().split(maxsplit=1)
         ret[int(pair[0])] = pair[1].strip()
     return ret
+
+
+def inference_hailo(
+    hailo_inference: HailoInference,
+    image,
+    labels,
+    match_labels: list,
+    width,
+    height,
+    threshold=0.5,
+):
+    """Extract detections from the HailoRT-postprocess output."""
+    hailo_output = hailo_inference.run(image)
+    results = []
+    # match:
+    #   score
+    #   rectangle
+    #   label
+    for class_id, detections in enumerate(hailo_output):
+        if match_labels and labels[class_id] not in match_labels:
+            continue
+        for detection in detections:
+            score = detection[4]
+            if score >= threshold:
+                y0, x0, y1, x1 = detection[:4]
+                bbox = (
+                    int(x0 * width),
+                    int(y0 * height),
+                    int(x1 * width),
+                    int(y1 * height),
+                )
+                match = (score, bbox)
+                if labels:
+                    match = (*match, labels[class_id])
+                results.append(match)
+    return results
 
 
 def inference_tensorflow(image, model, labels, match_labels: list):
@@ -272,10 +309,19 @@ async def detect_and_capture(
     output_directory: pathlib.Path,
     frame: int,
     gap: float,
+    hailo_inference: HailoInference,
 ):
+    config = picam2.stream_configuration("main")
+    width, height = config["size"]
     while True:
         image = picam2.capture_array("lores")
-        matches = inference_tensorflow(image, model, labels, match)
+        matches = []
+        if hailo_inference is not None:
+            matches = inference_hailo(
+                hailo_inference, image, model, labels, match, width, height
+            )
+        else:
+            matches = inference_tensorflow(image, model, labels, match)
         if len(matches) == 0:
             # Take a quick breather to give the CPU a break.
             # 1/5 of a second results in about 50% CPU usage.
@@ -370,10 +416,19 @@ async def detect_and_record(
     gap: float,
     encoder,
     audio: bool,
+    hailo_inference: HailoInference,
 ):
+    config = picam2.stream_configuration("main")
+    width, height = config["size"]
     while True:
         image = picam2.capture_array("lores")
-        matches = inference_tensorflow(image, model, labels, match)
+        matches = []
+        if hailo_inference is not None:
+            matches = inference_hailo(
+                hailo_inference, image, model, labels, match, width, height
+            )
+        else:
+            matches = inference_tensorflow(image, model, labels, match)
         if len(matches) == 0:
             time.sleep(0.2)
             await asyncio.sleep(0.1)
@@ -461,7 +516,13 @@ async def detect_and_record(
             <= minimum_record_seconds
         ) or consecutive_failed_detections < consecutive_failed_detections_to_stop:
             image = picam2.capture_array("lores")
-            matches = inference_tensorflow(image, model, labels, match)
+            matches = []
+            if hailo_inference is not None:
+                matches = inference_hailo(
+                    hailo_inference, image, model, labels, match, width, height
+                )
+            else:
+                matches = inference_tensorflow(image, model, labels, match)
             if len(matches) == 0:
                 consecutive_failed_detections += 1
 
@@ -617,6 +678,11 @@ async def main():
         help="Enable systemd-notify support for running as a systemd service.",
         action=argparse.BooleanOptionalAction,
     )
+    parser.add_argument(
+        "--hailo",
+        help="Use the Hailo AI acceleration module.",
+        action=argparse.BooleanOptionalAction,
+    )
     args = parser.parse_args()
 
     numeric_log_level = getattr(logging, args.log_level.upper(), None)
@@ -719,6 +785,15 @@ async def main():
 
         encoder = None
         config = None
+
+        hailo_inference = None
+        if args.hailo:
+            # Get the Hailo model, the input size it wants, and the size of our preview stream.
+            hailo_inference = HailoInference(args.model)
+            low_resolution_height, low_resolution_width, _ = (
+                hailo_inference.get_input_shape()
+            )
+
         if args.capture_mode == "video":
             encoder = H264Encoder()
             config = picam2.create_video_configuration(
@@ -783,6 +858,7 @@ async def main():
         logger.info(f"Low resolution: {low_resolution_size}")
         logger.info(f"Main resolution: {main_resolution_size}")
         has_autofocus = "AfMode" in picam2.camera_controls
+
         picam2.configure(config)
         # Enable autofocus.
         if has_autofocus:
@@ -958,6 +1034,7 @@ async def main():
                             output_directory=output_directory,
                             frame=frame,
                             gap=args.gap,
+                            hailo_inference=hailo_inference,
                         ),
                         return_exceptions=True,
                     )
@@ -980,6 +1057,7 @@ async def main():
                             gap=args.gap,
                             encoder=encoder,
                             audio=args.audio,
+                            hailo_inference=hailo_inference,
                         ),
                         return_exceptions=True,
                     )

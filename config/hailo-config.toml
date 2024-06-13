@@ -1,0 +1,41 @@
+# This config template is tweaked for capturing fast-moving creatures, such as birds.
+# Note that without global shutter, there can be distortions in the image when the creature is moving quickly.
+# Rolling shutter also makes it more diffult to successfully detect fast-moving objects.
+[detectionator]
+
+# Capture several photographs upon a successful detection.
+# Re-running the detection algorithm before taking another photograph may lead to a considerable delay before another picture.
+burst = 1
+
+# Focus the lens on the closest part of the range.
+# todo Test how well the Macro range works.
+# autofocus-range = "macro"
+autofocus-range = "full"
+
+# Focus the lens as quickly as possible.
+autofocus-speed = "fast"
+
+capture-mode = "video"
+
+#stream = "mediamtx.lan.jwillikers.io:8554/detectionator"
+#rtsp-tcp = false
+
+# Don't use a gap after a successful detection but start searching again immediately.
+gap = 0
+
+# Use a lower resolution for faster processing at the cost of being able to detect objects further away.
+# The default is 1/8 of the full resolution, 576x324, which is a pretty good for fairly close up, fast-moving objects.
+# low-resolution-width = 576
+# low-resolution-height = 324
+
+low-resolution-width = 1920
+low-resolution-height = 1080
+
+hailo = true
+
+# Below are standard options.
+label = "/usr/local/share/detectionator/models/coco_labels.txt"
+log-level = "info"
+match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
+model = "/usr/share/hailo-models/yolov6n.hef"
+output = "~/Pictures"
