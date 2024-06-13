@@ -724,7 +724,7 @@ async def main():
             config = picam2.create_video_configuration(
                 # Use more buffers for a smoother video.
                 # todo Large number of buffers may require dtoverlay=vc4-kms-v3d,cma-512 in /boot/firmware/config.txt
-                buffer_count=8,
+                buffer_count=4,
                 # Minimize the time it takes to autofocus by setting the frame rate.
                 # https://github.com/raspberrypi/picamera2/issues/884
                 controls={
