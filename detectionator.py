@@ -101,6 +101,29 @@ def inference_tensorflow(image, model, labels, match_labels: list):
     return matches
 
 
+# Convert a rectangle defined by two coordinates to a string representation.
+def rectangle_coordinates_to_string(rectangle):
+    return f"(x1: {rectangle[0]}, y1: {rectangle[1]}), (x2: {rectangle[2]}, y2: {rectangle[3]})"
+
+
+# Convert a rectangle defined by one coordinate, a width, and a height, to a string representation.
+def rectangle_coordinate_width_height_to_string(rectangle):
+    return f"x: {rectangle[0]}, y: {rectangle[1]}, width: {rectangle[2]}, height: {rectangle[3]}"
+
+
+# Convert a detection to a string representation.
+def match_to_string(match):
+    # match:
+    #   score
+    #   rectangle
+    #   label
+    rectangle = rectangle_coordinates_to_string(match[1])
+    if len(match) == 3:
+        return f"Score: {match[0]}, Box: {rectangle}, Label: {match[2]}"
+    else:
+        return f"Score: {match[0]}, Box: ({rectangle})"
+
+
 # todo Add some unit tests for this.
 def rectangle_coordinates_to_coordinate_width_height(rectangle):
     return (
@@ -297,6 +320,9 @@ async def detect_and_capture(
             await asyncio.sleep(0.075)
             continue
 
+        for match in sorted(matches, key=lambda x: x[0], reverse=True):
+            logger.info(f"Detection: {match_to_string(match)}")
+
         # Autofocus
         match_boxes = [m[1] for m in sorted(matches, key=lambda x: x[0], reverse=True)]
         adjusted_match_boxes = []
@@ -307,6 +333,10 @@ async def detect_and_capture(
                     scaler_crop_maximum,
                     (low_resolution_width, low_resolution_height),
                 )
+            )
+        for adjusted_match_box in adjusted_match_boxes:
+            logger.info(
+                f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_match_box)}"
             )
         picam2.set_controls({"AfWindows": adjusted_match_boxes})
         focus_cycle_job = None
@@ -386,6 +416,9 @@ async def detect_and_record(
             await asyncio.sleep(0.1)
             continue
 
+        for match in sorted(matches, key=lambda x: x[0], reverse=True):
+            logger.info(f"Detection: {match_to_string(match)}")
+
         # Autofocus
         match_boxes = [m[1] for m in sorted(matches, key=lambda x: x[0], reverse=True)]
         adjusted_match_boxes = []
@@ -396,6 +429,10 @@ async def detect_and_record(
                     scaler_crop_maximum,
                     (low_resolution_width, low_resolution_height),
                 )
+            )
+        for adjusted_match_box in adjusted_match_boxes:
+            logger.info(
+                f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_match_box)}"
             )
         picam2.set_controls({"AfWindows": adjusted_match_boxes})
         focus_cycle_job = None
@@ -484,6 +521,8 @@ async def detect_and_record(
                 await asyncio.sleep(0.2)
             else:
                 # Autofocus
+                for match in sorted(matches, key=lambda x: x[0], reverse=True):
+                    logger.info(f"Detection: {match_to_string(match)}")
                 match_boxes = [
                     m[1] for m in sorted(matches, key=lambda x: x[0], reverse=True)
                 ]
@@ -495,6 +534,10 @@ async def detect_and_record(
                             scaler_crop_maximum,
                             (low_resolution_width, low_resolution_height),
                         )
+                    )
+                for adjusted_match_box in adjusted_match_boxes:
+                    logger.info(
+                        f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_match_box)}"
                     )
                 picam2.set_controls({"AfWindows": adjusted_match_boxes})
                 focus_cycle_job = None
@@ -866,6 +909,9 @@ async def main():
                 }
             )
         scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
+        logger.info(
+            f"ScalerCropMaximum: {rectangle_coordinate_width_height_to_string(scaler_crop_maximum)}"
+        )
         time.sleep(1)
         picam2.start()
 
