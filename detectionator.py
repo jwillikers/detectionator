@@ -46,7 +46,7 @@ def read_label_file(file_path):
     return ret
 
 
-def inference_tensorflow(image, model, labels, match_labels: list):
+def inference_tensorflow(image, model, labels, match_labels: list, threshold: float):
     interpreter = tflite.Interpreter(model_path=str(model), num_threads=4)
     interpreter.allocate_tensors()
 
@@ -85,7 +85,7 @@ def inference_tensorflow(image, model, labels, match_labels: list):
         if match_labels and labels[classId] not in match_labels:
             continue
         score = detected_scores[0][i]
-        if score > 0.5:
+        if score > threshold:
             xmin = left * initial_w
             ymin = bottom * initial_h
             xmax = right * initial_w
@@ -306,11 +306,12 @@ async def detect_and_capture(
     output_directory: pathlib.Path,
     frame: int,
     gap: float,
+    detection_threshold: float,
 ):
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
-        matches = inference_tensorflow(image, model, labels, match)
+        matches = inference_tensorflow(image, model, labels, match, detection_threshold)
         if len(matches) == 0:
             # Take a quick breather to give the CPU a break.
             # 1/5 of a second results in about 50% CPU usage.
@@ -418,11 +419,12 @@ async def detect_and_record(
     gap: float,
     encoder,
     audio: bool,
+    detection_threshold: float,
 ):
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
-        matches = inference_tensorflow(image, model, labels, match)
+        matches = inference_tensorflow(image, model, labels, match, detection_threshold)
         if len(matches) == 0:
             time.sleep(0.2)
             await asyncio.sleep(0.1)
@@ -432,6 +434,7 @@ async def detect_and_record(
             logger.info(f"Detection: {match_to_string(match)}")
 
         # Autofocus
+        # todo Adjust focus to focus on "possible" detections when there is less confidence in a match.
         match_boxes = [m[1] for m in sorted(matches, key=lambda x: x[0], reverse=True)]
         adjusted_match_boxes = []
         for match_box in match_boxes:
@@ -502,13 +505,14 @@ async def detect_and_record(
             <= minimum_record_seconds
         ) or consecutive_failed_detections < consecutive_failed_detections_to_stop:
             image = picam2.capture_array("lores")
-            matches = inference_tensorflow(image, model, labels, match)
+            matches = inference_tensorflow(
+                image, model, labels, match, detection_threshold
+            )
             if len(matches) == 0:
                 consecutive_failed_detections += 1
                 time.sleep(0.2)
                 await asyncio.sleep(0.2)
             else:
-                # Autofocus
                 for match in sorted(matches, key=lambda x: x[0], reverse=True):
                     logger.info(f"Detection: {match_to_string(match)}")
                 match_boxes = [
@@ -611,6 +615,12 @@ async def main():
         "--config",
         is_config_file=True,
         help="The path to the config file to use.",
+    )
+    parser.add_argument(
+        "--detection-threshold",
+        help="The percentage confidence required for a detection.",
+        type=float,
+        default=0.5,
     )
     parser.add_argument(
         "--frame-rate",
@@ -737,6 +747,10 @@ async def main():
                 sys.exit(1)
 
     logger.info(f"Will take photographs of: {match}")
+
+    if not (args.detection_threshold > 0.0 and args.detection_threshold < 1.0):
+        logger.error("The detection threshold must be a value between 0.0 and 1.0.")
+        sys.exit(1)
 
     autofocus_mode = (
         controls.AfModeEnum.Auto
@@ -1070,6 +1084,7 @@ async def main():
                             output_directory=output_directory,
                             frame=frame,
                             gap=args.gap,
+                            detection_threshold=args.detection_threshold,
                         ),
                         return_exceptions=True,
                     )
@@ -1092,6 +1107,7 @@ async def main():
                             gap=args.gap,
                             encoder=encoder,
                             audio=args.audio,
+                            detection_threshold=args.detection_threshold,
                         ),
                         return_exceptions=True,
                     )
