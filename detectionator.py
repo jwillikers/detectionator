@@ -357,7 +357,12 @@ async def detect_and_capture(
         if has_autofocus:
             await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
+                picam2.set_controls({"AfWindows": [max_window]})
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
                 logger.warning("Autofocus cycle failed.")
+                await asyncio.sleep(0)
+                if not picam2.wait(focus_cycle_job):
+                    logger.warning("Autofocus cycle failed.")
         picam2.capture_file(
             filename,
             exif_data=exif_metadata,
@@ -376,8 +381,11 @@ async def detect_and_capture(
                 await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     picam2.set_controls({"AfWindows": [max_window]})
-                    picam2.autofocus_cycle(wait=False)
+                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
                     logger.warning("Autofocus cycle failed.")
+                    await asyncio.sleep(0)
+                    if not picam2.wait(focus_cycle_job):
+                        logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
                 filename,
                 exif_data=exif_metadata,
@@ -474,12 +482,13 @@ async def detect_and_record(
 
         output.start()
         if has_autofocus:
-            focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
                 picam2.set_controls({"AfWindows": [max_window]})
-                picam2.autofocus_cycle(wait=False)
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
                 logger.warning("Autofocus cycle failed.")
+                await asyncio.sleep(0)
+                if not picam2.wait(focus_cycle_job):
+                    logger.warning("Autofocus cycle failed.")
 
         time.sleep(0.1)
         await asyncio.sleep(0.1)
@@ -519,14 +528,16 @@ async def detect_and_record(
                         f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_match_box)}"
                     )
                 picam2.set_controls({"AfWindows": adjusted_match_boxes})
-                focus_cycle_job = None
                 if has_autofocus:
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
                     await asyncio.sleep(0)
                     if not picam2.wait(focus_cycle_job):
                         picam2.set_controls({"AfWindows": [max_window]})
-                        picam2.autofocus_cycle(wait=False)
+                        focus_cycle_job = picam2.autofocus_cycle(wait=False)
                         logger.warning("Autofocus cycle failed.")
+                        await asyncio.sleep(0)
+                        if not picam2.wait(focus_cycle_job):
+                            logger.warning("Autofocus cycle failed.")
                 consecutive_failed_detections = 0
                 time.sleep(0.2)
                 await asyncio.sleep(0.1)
@@ -923,8 +934,8 @@ async def main():
             else:
                 logger.warning("No GPS fix")
 
-            await asyncio.sleep(0)
             if has_autofocus:
+                await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
