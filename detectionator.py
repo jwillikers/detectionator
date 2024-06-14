@@ -129,8 +129,8 @@ def rectangle_coordinates_to_coordinate_width_height(rectangle):
     return (
         rectangle[0],
         rectangle[1],
-        abs(rectangle[2] - rectangle[0]),
-        abs(rectangle[3] - rectangle[1]),
+        rectangle[2] - rectangle[0],
+        rectangle[3] - rectangle[1],
     )
 
 
