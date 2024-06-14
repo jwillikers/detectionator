@@ -616,6 +616,8 @@ async def main():
         is_config_file=True,
         help="The path to the config file to use.",
     )
+    # todo Add support for a focal threshold which is lower than the detection threshold.
+    # This will focus the camera but not act as a proper detection.
     parser.add_argument(
         "--detection-threshold",
         help="The percentage confidence required for a detection.",
