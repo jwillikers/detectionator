@@ -94,9 +94,6 @@ def inference_tensorflow(image, model, labels, match_labels: list):
             match = (score, box)
             if labels:
                 match = (*match, labels[classId])
-                logger.debug(f"label = {labels[classId]}, score = {score}")
-            else:
-                logger.debug(f"score = {score}")
             matches.append(match)
     return matches
 
