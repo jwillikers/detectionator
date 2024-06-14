@@ -308,6 +308,7 @@ async def detect_and_capture(
     frame: int,
     gap: float,
 ):
+    _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
         matches = inference_tensorflow(image, model, labels, match)
@@ -375,7 +376,8 @@ async def detect_and_capture(
             if has_autofocus:
                 await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
-                    picam2.set_controls({"AfWindows": []})
+                    picam2.set_controls({"AfWindows": [max_window]})
+                    picam2.autofocus_cycle(wait=False)
                     logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
                 filename,
@@ -384,12 +386,12 @@ async def detect_and_capture(
                 signal_function=partial(captured_file, filename, matches),
             )
             frame += 1
-        # Reset focal point
-        # todo Is this necessary when capturing stills?
-        # picam2.set_controls({"AfWindows": []})
-        # if has_autofocus:
-        #     if failed ... picam2.set_controls({"AfWindows": []})
-        #     picam2.autofocus_cycle()
+        if has_autofocus:
+            picam2.set_controls({"AfWindows": [max_window]})
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            await asyncio.sleep(0)
+            if not picam2.wait(focus_cycle_job):
+                logger.warning("Autofocus cycle failed.")
         await asyncio.sleep(gap)
 
 
@@ -410,6 +412,7 @@ async def detect_and_record(
     encoder,
     audio: bool,
 ):
+    _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
         matches = inference_tensorflow(image, model, labels, match)
@@ -475,7 +478,8 @@ async def detect_and_record(
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
             await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
-                picam2.set_controls({"AfWindows": []})
+                picam2.set_controls({"AfWindows": [max_window]})
+                picam2.autofocus_cycle(wait=False)
                 logger.warning("Autofocus cycle failed.")
 
         time.sleep(0.1)
@@ -521,7 +525,8 @@ async def detect_and_record(
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
                     await asyncio.sleep(0)
                     if not picam2.wait(focus_cycle_job):
-                        picam2.set_controls({"AfWindows": []})
+                        picam2.set_controls({"AfWindows": [max_window]})
+                        picam2.autofocus_cycle(wait=False)
                         logger.warning("Autofocus cycle failed.")
                 consecutive_failed_detections = 0
                 time.sleep(0.2)
@@ -532,9 +537,12 @@ async def detect_and_record(
             picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
         # Reset focal point
-        picam2.set_controls({"AfWindows": []})
         if has_autofocus:
-            picam2.autofocus_cycle()
+            picam2.set_controls({"AfWindows": [max_window]})
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            await asyncio.sleep(0)
+            if not picam2.wait(focus_cycle_job):
+                logger.warning("Autofocus cycle failed.")
         frame += 1
 
 
