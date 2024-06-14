@@ -126,11 +126,13 @@ def match_to_string(match):
 
 # todo Add some unit tests for this.
 def rectangle_coordinates_to_coordinate_width_height(rectangle):
+    min_x = min(rectangle[0], rectangle[2])
+    min_y = min(rectangle[1], rectangle[3])
     return (
-        rectangle[0],
-        rectangle[1],
-        rectangle[2] - rectangle[0],
-        rectangle[3] - rectangle[1],
+        min_x,
+        min_y,
+        abs(rectangle[2] - rectangle[0]),
+        abs(rectangle[3] - rectangle[1]),
     )
 
 
