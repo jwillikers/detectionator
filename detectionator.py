@@ -375,6 +375,7 @@ async def detect_and_capture(
             if has_autofocus:
                 await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
+                    picam2.set_controls({"AfWindows": []})
                     logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
                 filename,
@@ -387,6 +388,7 @@ async def detect_and_capture(
         # todo Is this necessary when capturing stills?
         # picam2.set_controls({"AfWindows": []})
         # if has_autofocus:
+        #     if failed ... picam2.set_controls({"AfWindows": []})
         #     picam2.autofocus_cycle()
         await asyncio.sleep(gap)
 
@@ -469,6 +471,12 @@ async def detect_and_record(
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
 
         output.start()
+        if has_autofocus:
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            await asyncio.sleep(0)
+            if not picam2.wait(focus_cycle_job):
+                picam2.set_controls({"AfWindows": []})
+                logger.warning("Autofocus cycle failed.")
 
         time.sleep(0.1)
         await asyncio.sleep(0.1)
@@ -513,6 +521,7 @@ async def detect_and_record(
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
                     await asyncio.sleep(0)
                     if not picam2.wait(focus_cycle_job):
+                        picam2.set_controls({"AfWindows": []})
                         logger.warning("Autofocus cycle failed.")
                 consecutive_failed_detections = 0
                 time.sleep(0.2)
