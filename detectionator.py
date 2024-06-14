@@ -470,19 +470,8 @@ async def detect_and_record(
 
         output.start()
 
-        if has_autofocus:
-            await asyncio.sleep(0)
-            if not picam2.wait(focus_cycle_job):
-                logger.warning("Autofocus cycle failed.")
-
         time.sleep(0.1)
         await asyncio.sleep(0.1)
-
-        if has_autofocus:
-            focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            await asyncio.sleep(0)
-            if not picam2.wait(focus_cycle_job):
-                logger.warning("Autofocus cycle failed.")
 
         minimum_record_seconds = 6
         consecutive_failed_detections = 0
@@ -496,21 +485,7 @@ async def detect_and_record(
             matches = inference_tensorflow(image, model, labels, match)
             if len(matches) == 0:
                 consecutive_failed_detections += 1
-
-                if has_autofocus:
-                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
-                    await asyncio.sleep(0)
-                    if not picam2.wait(focus_cycle_job):
-                        logger.warning("Autofocus cycle failed.")
-
                 time.sleep(0.2)
-
-                if has_autofocus:
-                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
-                    await asyncio.sleep(0)
-                    if not picam2.wait(focus_cycle_job):
-                        logger.warning("Autofocus cycle failed.")
-
                 await asyncio.sleep(0.2)
             else:
                 # Autofocus
