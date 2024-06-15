@@ -95,10 +95,11 @@ def inference_tensorflow(
         floating_model = True
 
     # todo Avoid calling resize when the width and height match the resolution?
-    initial_h, initial_w, _channels = image.shape
-    picture = cv2.resize(image, (width, height))
+    initial_height, initial_width, _channels = image.shape
+    if (initial_width, initial_height) != (width, height):
+        image = cv2.resize(image, (width, height))
 
-    input_data = np.expand_dims(picture, axis=0)
+    input_data = np.expand_dims(image, axis=0)
     if floating_model:
         input_data = (np.float32(input_data) - 127.5) / 127.5
 
@@ -138,10 +139,10 @@ def inference_tensorflow(
         score = detected_scores[i]
         if score > threshold:
             bottom, left, top, right = detected_boxes[i]
-            x_min = left * initial_w
-            y_min = bottom * initial_h
-            x_max = right * initial_w
-            y_max = top * initial_h
+            x_min = left * initial_width
+            y_min = bottom * initial_height
+            x_max = right * initial_width
+            y_max = top * initial_height
             box = [x_min, y_min, x_max, y_max]
             detection = (score, box)
             if labels:
