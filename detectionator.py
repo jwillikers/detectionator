@@ -344,7 +344,7 @@ async def detect_and_capture(
             continue
 
         possible_detections, detections = split_detections_based_on_confidence(
-            detections, focal_detection_threshold
+            detections, detection_threshold
         )
         if len(possible_detections) > 0 and len(detections) == 0:
             for possible_detection in reversed(possible_detections):
@@ -491,7 +491,7 @@ async def detect_and_record(
             continue
 
         possible_detections, detections = split_detections_based_on_confidence(
-            detections, focal_detection_threshold
+            detections, detection_threshold
         )
         if len(possible_detections) > 0 and len(detections) == 0:
             for possible_detection in reversed(possible_detections):
@@ -614,7 +614,7 @@ async def detect_and_record(
                 continue
 
             possible_detections, detections = split_detections_based_on_confidence(
-                detections, focal_detection_threshold
+                detections, detection_threshold
             )
             if len(possible_detections) > 0 and len(detections) == 0:
                 for possible_detection in reversed(possible_detections):
