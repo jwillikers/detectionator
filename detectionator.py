@@ -1004,7 +1004,7 @@ async def main():
             else:
                 main_resolution_height = picam2.sensor_resolution[1]
 
-        main_resolution = (main_resolution_height, main_resolution_width)
+        main_resolution = (main_resolution_width, main_resolution_height)
 
         buffers = 2
         if args.buffers:
