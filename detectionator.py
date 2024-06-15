@@ -977,14 +977,14 @@ async def main():
                 picam2.sensor_resolution[1] // default_low_resolution_scale
             )
 
-        if (
-            picam2.sensor_resolution[0] / low_resolution_width
-            != picam2.sensor_resolution[1] / low_resolution_height
-        ):
-            logger.error(
-                f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the resolution, '{picam2.sensor_resolution}'"
-            )
-            sys.exit(1)
+        # if (
+        #     picam2.sensor_resolution[0] / low_resolution_width
+        #     != picam2.sensor_resolution[1] / low_resolution_height
+        # ):
+        #     logger.error(
+        #         f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the resolution, '{picam2.sensor_resolution}'"
+        #     )
+        #     sys.exit(1)
 
         low_resolution = (low_resolution_width, low_resolution_height)
 
