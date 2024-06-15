@@ -77,11 +77,8 @@ def yolo_class_filter(classdata):
 
 
 def inference_tensorflow(
-    image, model, labels, match_labels: list, threshold: float, is_yolo: bool
+    image, interpreter, labels, match_labels: list, threshold: float, is_yolo: bool
 ):
-    interpreter = tflite.Interpreter(model_path=str(model), num_threads=4)
-    interpreter.allocate_tensors()
-
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     height = input_details[0]["shape"][1]
@@ -115,7 +112,7 @@ def inference_tensorflow(
         )  # confidences  [25200, 1]
         x, y, w, h = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]  # xywh
         detected_boxes = [y - h / 2, x - w / 2, y + h / 2, x + w / 2]  # xywh to yxyx
-        num_boxes = len(detected_boxes)
+        num_boxes = len(detected_scores)
     else:
         detected_boxes = interpreter.get_tensor(output_details[0]["index"])[0]
         detected_classes = interpreter.get_tensor(output_details[1]["index"])[0]
@@ -360,7 +357,7 @@ def split_detections_based_on_confidence(
 
 async def detect_and_capture(
     picam2,
-    model,
+    interpreter,
     labels,
     match,
     gps_exif_metadata: dict,
@@ -381,7 +378,7 @@ async def detect_and_capture(
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
             inference_tensorflow(
-                image, model, labels, match, focal_detection_threshold, is_yolo
+                image, interpreter, labels, match, focal_detection_threshold, is_yolo
             )
         )
         if len(detections) == 0:
@@ -512,7 +509,7 @@ async def detect_and_capture(
 
 async def detect_and_record(
     picam2,
-    model,
+    interpreter,
     labels,
     match,
     gps_mp4_metadata: dict,
@@ -536,7 +533,7 @@ async def detect_and_record(
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
             inference_tensorflow(
-                image, model, labels, match, focal_detection_threshold, is_yolo
+                image, interpreter, labels, match, focal_detection_threshold, is_yolo
             )
         )
         if len(detections) == 0:
@@ -657,7 +654,12 @@ async def detect_and_record(
             image = picam2.capture_array("lores")
             detections = sort_detections_by_confidence(
                 inference_tensorflow(
-                    image, model, labels, match, focal_detection_threshold, is_yolo
+                    image,
+                    interpreter,
+                    labels,
+                    match,
+                    focal_detection_threshold,
+                    is_yolo,
                 )
             )
             if len(detections) == 0:
@@ -1176,6 +1178,9 @@ async def main():
         time.sleep(1)
         picam2.start()
 
+        interpreter = tflite.Interpreter(model_path=str(args.model), num_threads=4)
+        interpreter.allocate_tensors()
+
         gps_exif_metadata = {}
         gps_mp4_metadata = {}
 
@@ -1320,7 +1325,7 @@ async def main():
                         update_gps_exif_metadata(gpsd, gps_exif_metadata),
                         detect_and_capture(
                             picam2=picam2,
-                            model=args.model,
+                            interpreter=interpreter,
                             labels=labels,
                             match=match,
                             gps_exif_metadata=gps_exif_metadata,
@@ -1342,7 +1347,7 @@ async def main():
                         update_gps_mp4_metadata(gpsd, gps_mp4_metadata),
                         detect_and_record(
                             picam2=picam2,
-                            model=args.model,
+                            interpreter=interpreter,
                             labels=labels,
                             match=match,
                             gps_mp4_metadata=gps_mp4_metadata,
