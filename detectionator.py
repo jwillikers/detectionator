@@ -6,6 +6,7 @@ import datetime
 from dateutil import parser
 from functools import partial
 import logging
+from numbers import Real
 import os
 import pathlib
 import signal
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 rectangles = []
 
 
-def draw_rectangles(request, resolution_scale):
+def draw_bounding_boxes(request, resolution_scale: tuple[Real, Real]):
     with MappedArray(request, "main") as image:
         for rectangle in rectangles:
             x_min, y_min, x_max, y_max = rectangle[0:4]
@@ -824,7 +825,7 @@ async def main():
         default=0.5,
     )
     parser.add_argument(
-        "--draw-rectangles",
+        "--draw-bounding-boxes",
         action=argparse.BooleanOptionalAction,
         help="Draw rectangles around detected objects",
     )
@@ -1180,13 +1181,14 @@ async def main():
         logger.info(
             f"ScalerCropMaximum: {rectangle_coordinate_width_height_to_string(scaler_crop_maximum)}"
         )
-        picam2.post_callback = partial(
-            draw_rectangles,
-            resolution_scale=(
-                main_resolution_width / low_resolution_width,
-                main_resolution_height / low_resolution_height,
-            ),
-        )
+        if args.draw_bounding_boxes:
+            picam2.post_callback = partial(
+                draw_bounding_boxes,
+                resolution_scale=(
+                    main_resolution_width / low_resolution_width,
+                    main_resolution_height / low_resolution_height,
+                ),
+            )
         time.sleep(1)
         picam2.start()
 
