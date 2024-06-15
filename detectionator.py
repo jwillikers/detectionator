@@ -347,12 +347,14 @@ def scale(rectangle, ratio: tuple[Real, Real]):
 
 # Clamp a rectangle within the given max and min ranges.
 # The rectangle should be represented by the minimum and maximum coordinates.
-def clamp(rectangle, max: tuple[Real, Real], min: tuple[Real, Real] = (0, 0)):
+def clamp(
+    rectangle, max_extent: tuple[Real, Real], min_extent: tuple[Real, Real] = (0, 0)
+):
     x_min, y_min, x_max, y_max = rectangle
-    x_min = max(min[0], x_min)
-    y_min = max(min[1], y_min)
-    x_max = min(max[0], x_max)
-    y_max = min(max[1], y_max)
+    x_min = max(min_extent[0], x_min)
+    y_min = max(min_extent[1], y_min)
+    x_max = min(max_extent[0], x_max)
+    y_max = min(max_extent[1], y_max)
     return x_min, y_min, x_max, y_max
 
 
