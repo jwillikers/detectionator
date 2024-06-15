@@ -17,7 +17,7 @@ import cv2
 import gps.aiogps
 from libcamera import controls
 import numpy as np
-from picamera2 import Picamera2
+from picamera2 import MappedArray, Picamera2
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import FfmpegOutput
 import piexif
@@ -35,6 +35,31 @@ from xmp_utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+rectangles = []
+
+
+def draw_rectangles(request):
+    with MappedArray(request, "main") as image:
+        for rectangle in rectangles:
+            x_min, y_min, x_max, y_max = rectangle[0:4]
+
+            rectangle_min = x_min, y_min
+            rectangle_max = x_max, y_max
+            cv2.rectangle(image.array, rectangle_min, rectangle_max, (0, 255, 0, 0))
+            if len(rectangle_min) == 5:
+                text = rectangle_min[4]
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                cv2.putText(
+                    image.array,
+                    text,
+                    (x_min, y_min - 10),
+                    font,
+                    1,
+                    (255, 255, 255),
+                    2,
+                    cv2.LINE_AA,
+                )
 
 
 def read_label_file(file_path):
@@ -65,6 +90,7 @@ def inference_tensorflow(
     if input_details[0]["dtype"] == np.float32:
         floating_model = True
 
+    # todo Avoid calling resize when the width and height match the resolution?
     picture = cv2.resize(image, (width, height))
     initial_h, initial_w, _channels = picture.shape
 
@@ -347,6 +373,7 @@ async def detect_and_capture(
     focal_detection_threshold: float,
     is_yolo: bool,
 ):
+    global rectangles
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
@@ -373,7 +400,8 @@ async def detect_and_capture(
                     f"Possible detection: {detection_to_string(possible_detection)}"
                 )
 
-            bounding_boxes = [m[1] for m in reversed(possible_detections)]
+            bounding_boxes = [d[1] for d in reversed(possible_detections)]
+            rectangles = bounding_boxes
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -402,7 +430,8 @@ async def detect_and_capture(
         for detection in reversed(detections):
             logger.info(f"Detection: {detection_to_string(detection)}")
 
-        bounding_boxes = [m[1] for m in reversed(detections)]
+        bounding_boxes = [d[1] for d in reversed(detections)]
+        rectangles = bounding_boxes
         scaled_bounding_boxes = [
             scale(
                 rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -499,6 +528,7 @@ async def detect_and_record(
     focal_detection_threshold: float,
     is_yolo: bool,
 ):
+    global rectangles
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
@@ -521,7 +551,8 @@ async def detect_and_record(
                     f"Possible detection: {detection_to_string(possible_detection)}"
                 )
 
-            bounding_boxes = [m[1] for m in reversed(possible_detections)]
+            bounding_boxes = [d[1] for d in reversed(possible_detections)]
+            rectangles = bounding_boxes
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -551,8 +582,8 @@ async def detect_and_record(
         for detection in reversed(detections):
             logger.info(f"Detection: {detection_to_string(detection)}")
 
-        # todo Adjust focus to focus on "possible" detections when there is less confidence in a match.
-        bounding_boxes = [m[1] for m in reversed(detections)]
+        bounding_boxes = [d[1] for d in reversed(detections)]
+        rectangles = bounding_boxes
         scaled_bounding_boxes = [
             scale(
                 rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -642,7 +673,8 @@ async def detect_and_record(
                         f"Possible detection: {detection_to_string(possible_detection)}"
                     )
 
-                bounding_boxes = [m[1] for m in reversed(possible_detections)]
+                bounding_boxes = [d[1] for d in reversed(possible_detections)]
+                rectangles = bounding_boxes
                 scaled_bounding_boxes = [
                     scale(
                         rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -675,7 +707,8 @@ async def detect_and_record(
 
             for detection in reversed(detections):
                 logger.info(f"Detection: {detection_to_string(detection)}")
-            bounding_boxes = [m[1] for m in reversed(detections)]
+            bounding_boxes = [d[1] for d in reversed(detections)]
+            rectangles = bounding_boxes
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -779,6 +812,11 @@ async def main():
         help="The percentage confidence required for a detection.",
         type=float,
         default=0.5,
+    )
+    parser.add_argument(
+        "--draw-rectangles",
+        action=argparse.BooleanOptionalAction,
+        help="Draw rectangles around detected objects",
     )
     parser.add_argument(
         "--encoder-quality",
@@ -1132,6 +1170,7 @@ async def main():
         logger.info(
             f"ScalerCropMaximum: {rectangle_coordinate_width_height_to_string(scaler_crop_maximum)}"
         )
+        picam2.post_callback = draw_rectangles
         time.sleep(1)
         picam2.start()
 
@@ -1239,11 +1278,6 @@ async def main():
                 signal.SIGUSR1,
                 lambda: asyncio.create_task(capture_sample_signal_handler()),
             )
-
-        # todo reshape image for YOLOv5?
-        # new_shape = (width, height)  # the shape the model was trained with
-        # if new_shape != lowresSize:
-        #     img = cv2.resize(img, new_shape)
 
         if args.startup_capture:
             if args.capture_mode == "video":
