@@ -649,6 +649,8 @@ async def detect_and_record(
                         logger.warning("Autofocus cycle failed.")
                 time.sleep(0.1)
                 await asyncio.sleep(0.1)
+                # todo Should this set consecutive failed detections to zero, increment failed detections, or do nothing?
+                consecutive_failed_detections = 0
                 continue
 
             for match in sorted(detections, key=lambda x: x[0], reverse=True):
