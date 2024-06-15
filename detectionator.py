@@ -79,6 +79,7 @@ def inference_tensorflow(
     detected_boxes = []
     detected_classes = []
     detected_scores = []
+    num_boxes = 0
     if is_yolo:
         output_data = interpreter.get_tensor(output_details[0]["index"])[0]
         boxes = np.squeeze(output_data[..., :4])
@@ -86,23 +87,24 @@ def inference_tensorflow(
         detected_scores = np.squeeze(output_data[..., 4:5])  # confidences  [25200, 1]
         x, y, w, h = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]  # xywh
         detected_boxes = [x - w / 2, y - h / 2, x + w / 2, y + h / 2]  # xywh to xyxy
+        num_boxes = len(detected_boxes)
     else:
-        detected_boxes = interpreter.get_tensor(output_details[0]["index"])
-        detected_classes = interpreter.get_tensor(output_details[1]["index"])
-        detected_scores = interpreter.get_tensor(output_details[2]["index"])
-        num_boxes = interpreter.get_tensor(output_details[3]["index"])
+        detected_boxes = interpreter.get_tensor(output_details[0]["index"])[0]
+        detected_classes = interpreter.get_tensor(output_details[1]["index"])[0]
+        detected_scores = interpreter.get_tensor(output_details[2]["index"])[0]
+        num_boxes = int(interpreter.get_tensor(output_details[3]["index"]).item())
 
     detections = list()
     # detection:
     #   score
     #   rectangle
     #   label
-    for i in range(int(num_boxes.item())):
-        top, left, bottom, right = detected_boxes[0][i]
-        class_id = int(detected_classes[0][i])
+    for i in range(num_boxes):
+        top, left, bottom, right = detected_boxes[i]
+        class_id = int(detected_classes[i])
         if match_labels and labels[class_id] not in match_labels:
             continue
-        score = detected_scores[0][i]
+        score = detected_scores[i]
         if score > threshold:
             xmin = left * initial_w
             ymin = bottom * initial_h
