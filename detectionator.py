@@ -893,7 +893,7 @@ async def main():
 
     args.model = os.path.expanduser(args.model)
     is_yolo = False
-    if "yolov5" in args.model:
+    if "yolov5" in args.model.stem:
         is_yolo = True
 
     label_file = None
