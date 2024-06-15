@@ -579,6 +579,7 @@ async def detect_and_record(
         if not encoder_running:
             picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
 
+        logger.info(f"Recording video '{file}'")
         output.start()
         if has_autofocus:
             if not picam2.wait(focus_cycle_job):
@@ -690,6 +691,7 @@ async def detect_and_record(
         if not encoder_running:
             picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
+        logger.info(f"Finished recording video '{file}'")
         # Reset focal point
         if has_autofocus:
             picam2.set_controls({"AfWindows": [max_window]})
