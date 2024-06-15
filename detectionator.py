@@ -126,17 +126,17 @@ def inference_tensorflow(
     #   rectangle
     #   label
     for i in range(num_boxes):
-        top, left, bottom, right = detected_boxes[i]
+        bottom, left, top, right = detected_boxes[i]
         class_id = int(detected_classes[i])
         if match_labels and labels[class_id] not in match_labels:
             continue
         score = detected_scores[i]
         if score > threshold:
-            xmin = left * initial_w
-            ymin = bottom * initial_h
-            xmax = right * initial_w
-            ymax = top * initial_h
-            box = [xmin, ymin, xmax, ymax]
+            x_min = left * initial_w
+            y_min = bottom * initial_h
+            x_max = right * initial_w
+            y_max = top * initial_h
+            box = [x_min, y_min, x_max, y_max]
             detection = (score, box)
             if labels:
                 detection = (*detection, labels[class_id])
