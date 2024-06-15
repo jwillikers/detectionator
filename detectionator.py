@@ -49,7 +49,9 @@ def draw_bounding_boxes(
                 clamp(pad(scale(rectangle[0:4], resolution_scale), 5), resolution)
             )
             x_min, y_min, _, _ = box
-            cv2.rectangle(image.array, box[0], box[1], (0, 255, 0, 0))
+            cv2.rectangle(
+                image.array, (box[0], box[1]), (box[2], box[3]), (0, 255, 0, 0)
+            )
             if len(rectangle) == 5:
                 text = rectangle[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
