@@ -86,7 +86,6 @@ def inference_tensorflow(
     output_details = interpreter.get_output_details()
     height = input_details[0]["shape"][1]
     width = input_details[0]["shape"][2]
-    logger.info(f"Model resolution: {width}x{height}")
     floating_model = False
     if input_details[0]["dtype"] == np.float32:
         floating_model = True
