@@ -318,8 +318,7 @@ async def detect_and_capture(
     match,
     gps_exif_metadata: dict,
     scaler_crop_maximum,
-    low_resolution_width,
-    low_resolution_height,
+    low_resolution: tuple[int, int],
     has_autofocus,
     burst: bool,
     output_directory: pathlib.Path,
@@ -359,7 +358,7 @@ async def detect_and_capture(
                     scale(
                         rectangle_coordinates_to_coordinate_width_height(bounding_box),
                         scaler_crop_maximum,
-                        (low_resolution_width, low_resolution_height),
+                        low_resolution,
                     )
                 )
             for adjusted_bounding_box in adjusted_bounding_boxes:
@@ -389,7 +388,7 @@ async def detect_and_capture(
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
                     scaler_crop_maximum,
-                    (low_resolution_width, low_resolution_height),
+                    low_resolution,
                 )
             )
         for adjusted_bounding_box in adjusted_bounding_boxes:
@@ -467,8 +466,7 @@ async def detect_and_record(
     match,
     gps_mp4_metadata: dict,
     scaler_crop_maximum,
-    low_resolution_width,
-    low_resolution_height,
+    low_resolution: tuple[int, int],
     has_autofocus,
     autofocus_speed,
     output_directory: pathlib.Path,
@@ -506,7 +504,7 @@ async def detect_and_record(
                     scale(
                         rectangle_coordinates_to_coordinate_width_height(bounding_box),
                         scaler_crop_maximum,
-                        (low_resolution_width, low_resolution_height),
+                        low_resolution,
                     )
                 )
             for adjusted_bounding_box in adjusted_bounding_boxes:
@@ -538,7 +536,7 @@ async def detect_and_record(
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
                     scaler_crop_maximum,
-                    (low_resolution_width, low_resolution_height),
+                    low_resolution,
                 )
             )
         for adjusted_bounding_box in adjusted_bounding_boxes:
@@ -631,7 +629,7 @@ async def detect_and_record(
                                 bounding_box
                             ),
                             scaler_crop_maximum,
-                            (low_resolution_width, low_resolution_height),
+                            low_resolution,
                         )
                     )
                 for adjusted_bounding_box in adjusted_bounding_boxes:
@@ -665,7 +663,7 @@ async def detect_and_record(
                     scale(
                         rectangle_coordinates_to_coordinate_width_height(bounding_box),
                         scaler_crop_maximum,
-                        (low_resolution_width, low_resolution_height),
+                        low_resolution,
                     )
                 )
             for adjusted_bounding_box in adjusted_bounding_boxes:
@@ -979,6 +977,8 @@ async def main():
             )
             sys.exit(1)
 
+        low_resolution = (low_resolution_width, low_resolution_height)
+
         if args.main_resolution_width:
             main_resolution_width = args.main_resolution_width
         else:
@@ -994,6 +994,8 @@ async def main():
                 main_resolution_height = 1080
             else:
                 main_resolution_height = picam2.sensor_resolution[1]
+
+        main_resolution = (main_resolution_height, main_resolution_width)
 
         buffers = 2
         if args.buffers:
@@ -1030,7 +1032,7 @@ async def main():
                 main={
                     # I think this format needs to be "XRGB8888" for the H264 encoder.
                     # "format": "RGB888",
-                    "size": (main_resolution_width, main_resolution_height),
+                    "size": main_resolution,
                     # 720p
                     # "size": (1280, 720),
                 },
@@ -1038,7 +1040,7 @@ async def main():
                     # Only Pi 5 and newer can use formats besides YUV here.
                     # This avoids having to convert the image format for OpenCV later.
                     "format": "RGB888",
-                    "size": (low_resolution_width, low_resolution_height),
+                    "size": low_resolution,
                 },
             )
         else:
@@ -1057,23 +1059,23 @@ async def main():
                 # Don't display anything in the preview window since the system is running headless.
                 display=None,
                 main={
-                    "size": (main_resolution_width, main_resolution_height),
+                    "size": main_resolution,
                     "format": "RGB888",
                 },
                 lores={
                     # Only Pi 5 and newer can use formats besides YUV here.
                     # This avoids having to convert the image format for OpenCV later.
                     "format": "RGB888",
-                    "size": (low_resolution_width, low_resolution_height),
+                    "size": low_resolution,
                 },
             )
         # todo See how forcing the streams into alignment effects performance.
         # todo Make this a configuration option, enabled by default.
         picam2.align_configuration(config)
-        low_resolution_size = config["lores"]["size"]
-        main_resolution_size = config["main"]["size"]
-        logger.info(f"Low resolution: {low_resolution_size}")
-        logger.info(f"Main resolution: {main_resolution_size}")
+        low_resolution = config["lores"]["size"]
+        main_resolution = config["main"]["size"]
+        logger.info(f"Aligned low resolution: {low_resolution}")
+        logger.info(f"Aligned main resolution: {main_resolution}")
         has_autofocus = "AfMode" in picam2.camera_controls
         picam2.configure(config)
         # Enable autofocus.
@@ -1244,8 +1246,7 @@ async def main():
                             match=match,
                             gps_exif_metadata=gps_exif_metadata,
                             scaler_crop_maximum=scaler_crop_maximum,
-                            low_resolution_width=low_resolution_width,
-                            low_resolution_height=low_resolution_height,
+                            low_resolution=low_resolution,
                             has_autofocus=has_autofocus,
                             burst=args.burst,
                             output_directory=output_directory,
@@ -1266,8 +1267,7 @@ async def main():
                             match=match,
                             gps_mp4_metadata=gps_mp4_metadata,
                             scaler_crop_maximum=scaler_crop_maximum,
-                            low_resolution_width=low_resolution_width,
-                            low_resolution_height=low_resolution_height,
+                            low_resolution=low_resolution,
                             has_autofocus=has_autofocus,
                             autofocus_speed=autofocus_speed,
                             output_directory=output_directory,
