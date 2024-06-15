@@ -40,22 +40,18 @@ logger = logging.getLogger(__name__)
 rectangles = []
 
 
-def draw_bounding_boxes(request, resolution_scale: tuple[Real, Real]):
+def draw_bounding_boxes(
+    request, resolution_scale: tuple[Real, Real], resolution: tuple[Real, Real]
+):
     with MappedArray(request, "main") as image:
         for rectangle in rectangles:
-            x_min, y_min, x_max, y_max = rectangle[0:4]
-
-            rectangle_min = (
-                int(x_min * resolution_scale[0]) - 5,
-                int(y_min * resolution_scale[1]) - 5,
+            box = cast_int(
+                clamp(pad(scale(rectangle[0:4], resolution_scale), 5), resolution)
             )
-            rectangle_max = (
-                int(x_max * resolution_scale[0]) + 5,
-                int(y_max * resolution_scale[1]) + 5,
-            )
-            cv2.rectangle(image.array, rectangle_min, rectangle_max, (0, 255, 0, 0))
-            if len(rectangle_min) == 5:
-                text = rectangle_min[4]
+            x_min, y_min, _, _ = box
+            cv2.rectangle(image.array, box[0], box[1], (0, 255, 0, 0))
+            if len(rectangle) == 5:
+                text = rectangle[4]
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 cv2.putText(
                     image.array,
@@ -94,7 +90,6 @@ def inference_tensorflow(
     if input_details[0]["dtype"] == np.float32:
         floating_model = True
 
-    # todo Avoid calling resize when the width and height match the resolution?
     initial_height, initial_width, _channels = image.shape
     if (initial_width, initial_height) != (width, height):
         image = cv2.resize(image, (width, height))
@@ -183,33 +178,6 @@ def rectangle_coordinates_to_coordinate_width_height(rectangle):
         min_y,
         abs(rectangle[2] - rectangle[0]),
         abs(rectangle[3] - rectangle[1]),
-    )
-
-
-# todo Add some tests to verify this is working as it should.
-def scale(rectangle, scaler_crop_maximum, resolution):
-    x_offset, y_offset, width, height = rectangle
-
-    # scaler_crop_maximum represents a larger image than the image we use so we need to account
-    x_offset_scm, y_offset_scm, width_scm, height_scm = scaler_crop_maximum
-
-    resolution_width, resolution_height = resolution
-
-    # create a scale so that you can scale the preview to the SCM
-    y_scale = height_scm / resolution_height
-    x_scale = width_scm / resolution_width
-
-    # scale coords to SCM
-    y_offset_scaled = int(y_offset * y_scale)
-    height_scaled = int(height * y_scale)
-    x_offset_scaled = int(x_offset * x_scale)
-    width_scaled = int(width * x_scale)
-
-    return (
-        x_offset_scm + x_offset_scaled,
-        y_offset_scm + y_offset_scaled,
-        width_scaled,
-        height_scaled,
     )
 
 
@@ -350,6 +318,44 @@ def sort_detections_by_confidence(detections: list):
     return sorted(detections, key=lambda x: x[0], reverse=True)
 
 
+# Widen a bounding box rectangle.
+# The rectangle should be represented by the minimum and maximum coordinates.
+def pad(rectangle, padding: Real):
+    x_min, y_min, x_max, y_max = rectangle
+    return x_min - padding, y_min - padding, x_max + padding, y_max + padding
+
+
+# Convert the components of a rectangle to integers.
+def cast_int(rectangle):
+    x_min, y_min, x_max, y_max = rectangle
+    return int(x_min), int(y_min), int(x_max), int(y_max)
+
+
+# Move a rectangle by the given x and y amounts.
+# The rectangle should be represented by the minimum and maximum coordinates.
+def translate(rectangle, offset: tuple[Real, Real]):
+    x_min, y_min, x_max, y_max = rectangle
+    return x_min + offset[0], y_min + offset[1], x_max + offset[0], y_max + offset[1]
+
+
+# Scale a rectangle by the given width and height ratios.
+# The rectangle should be represented by the minimum and maximum coordinates.
+def scale(rectangle, ratio: tuple[Real, Real]):
+    x_min, y_min, x_max, y_max = rectangle
+    return x_min * ratio[0], y_min * ratio[1], x_max * ratio[0], y_max * ratio[1]
+
+
+# Clamp a rectangle within the given max and min ranges.
+# The rectangle should be represented by the minimum and maximum coordinates.
+def clamp(rectangle, max: tuple[Real, Real], min: tuple[Real, Real] = (0, 0)):
+    x_min, y_min, x_max, y_max = rectangle
+    x_min = max(min[0], x_min)
+    y_min = max(min[1], y_min)
+    x_max = min(max[0], x_max)
+    y_max = min(max[1], y_max)
+    return x_min, y_min, x_max, y_max
+
+
 # Split a sorted list of detections according to a given amount of confidence.
 #
 # Requires the list of detections to be sorted by the confidence rating.
@@ -369,8 +375,10 @@ async def detect_and_capture(
     labels,
     match,
     gps_exif_metadata: dict,
-    scaler_crop_maximum,
+    scaler_crop_maximum_ratio: tuple[Real, Real],
+    scaler_crop_maximum_offset: tuple[Real, Real],
     low_resolution: tuple[int, int],
+    main_resolution: tuple[int, int],
     has_autofocus,
     burst: bool,
     output_directory: pathlib.Path,
@@ -410,10 +418,19 @@ async def detect_and_capture(
 
             bounding_boxes = [d[1] for d in reversed(possible_detections)]
             scaled_bounding_boxes = [
-                scale(
-                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                    scaler_crop_maximum,
-                    low_resolution,
+                cast_int(
+                    rectangle_coordinates_to_coordinate_width_height(
+                        clamp(
+                            pad(
+                                scale(
+                                    translate(bounding_box, scaler_crop_maximum_offset),
+                                    scaler_crop_maximum_ratio,
+                                ),
+                                5,
+                            ),
+                            main_resolution,
+                        )
+                    )
                 )
                 for bounding_box in bounding_boxes
             ]
@@ -439,10 +456,19 @@ async def detect_and_capture(
 
         bounding_boxes = [d[1] for d in reversed(detections)]
         scaled_bounding_boxes = [
-            scale(
-                rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                scaler_crop_maximum,
-                low_resolution,
+            cast_int(
+                rectangle_coordinates_to_coordinate_width_height(
+                    clamp(
+                        pad(
+                            scale(
+                                translate(bounding_box, scaler_crop_maximum_offset),
+                                scaler_crop_maximum_ratio,
+                            ),
+                            5,
+                        ),
+                        main_resolution,
+                    )
+                )
             )
             for bounding_box in bounding_boxes
         ]
@@ -520,8 +546,10 @@ async def detect_and_record(
     labels,
     match,
     gps_mp4_metadata: dict,
-    scaler_crop_maximum,
+    scaler_crop_maximum_ratio: tuple[Real, Real],
+    scaler_crop_maximum_offset: tuple[Real, Real],
     low_resolution: tuple[int, int],
+    main_resolution: tuple[int, int],
     has_autofocus,
     autofocus_speed,
     output_directory: pathlib.Path,
@@ -560,10 +588,19 @@ async def detect_and_record(
 
             bounding_boxes = [d[1] for d in reversed(possible_detections)]
             scaled_bounding_boxes = [
-                scale(
-                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                    scaler_crop_maximum,
-                    low_resolution,
+                cast_int(
+                    rectangle_coordinates_to_coordinate_width_height(
+                        clamp(
+                            pad(
+                                scale(
+                                    translate(bounding_box, scaler_crop_maximum_offset),
+                                    scaler_crop_maximum_ratio,
+                                ),
+                                5,
+                            ),
+                            main_resolution,
+                        )
+                    )
                 )
                 for bounding_box in bounding_boxes
             ]
@@ -590,10 +627,19 @@ async def detect_and_record(
 
         bounding_boxes = [d[1] for d in reversed(detections)]
         scaled_bounding_boxes = [
-            scale(
-                rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                scaler_crop_maximum,
-                low_resolution,
+            cast_int(
+                rectangle_coordinates_to_coordinate_width_height(
+                    clamp(
+                        pad(
+                            scale(
+                                translate(bounding_box, scaler_crop_maximum_offset),
+                                scaler_crop_maximum_ratio,
+                            ),
+                            5,
+                        ),
+                        main_resolution,
+                    )
+                )
             )
             for bounding_box in bounding_boxes
         ]
@@ -686,10 +732,21 @@ async def detect_and_record(
 
                 bounding_boxes = [d[1] for d in reversed(possible_detections)]
                 scaled_bounding_boxes = [
-                    scale(
-                        rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                        scaler_crop_maximum,
-                        low_resolution,
+                    cast_int(
+                        rectangle_coordinates_to_coordinate_width_height(
+                            clamp(
+                                pad(
+                                    scale(
+                                        translate(
+                                            bounding_box, scaler_crop_maximum_offset
+                                        ),
+                                        scaler_crop_maximum_ratio,
+                                    ),
+                                    5,
+                                ),
+                                main_resolution,
+                            )
+                        )
                     )
                     for bounding_box in bounding_boxes
                 ]
@@ -719,10 +776,19 @@ async def detect_and_record(
                 logger.info(f"Detection: {detection_to_string(detection)}")
             bounding_boxes = [d[1] for d in reversed(detections)]
             scaled_bounding_boxes = [
-                scale(
-                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                    scaler_crop_maximum,
-                    low_resolution,
+                cast_int(
+                    rectangle_coordinates_to_coordinate_width_height(
+                        clamp(
+                            pad(
+                                scale(
+                                    translate(bounding_box, scaler_crop_maximum_offset),
+                                    scaler_crop_maximum_ratio,
+                                ),
+                                5,
+                            ),
+                            main_resolution,
+                        )
+                    )
                 )
                 for bounding_box in bounding_boxes
             ]
@@ -1179,6 +1245,14 @@ async def main():
         logger.info(
             f"ScalerCropMaximum: {rectangle_coordinate_width_height_to_string(scaler_crop_maximum)}"
         )
+
+        scaler_crop_maximum_offset = (scaler_crop_maximum[0], scaler_crop_maximum[1])
+
+        scaler_crop_maximum_ratio = (
+            scaler_crop_maximum[2] / low_resolution_width,
+            scaler_crop_maximum[3] / low_resolution_height,
+        )
+
         if args.draw_bounding_boxes:
             picam2.post_callback = partial(
                 draw_bounding_boxes,
@@ -1186,6 +1260,7 @@ async def main():
                     main_resolution_width / low_resolution_width,
                     main_resolution_height / low_resolution_height,
                 ),
+                resolution=main_resolution,
             )
         time.sleep(1)
         picam2.start()
@@ -1341,8 +1416,10 @@ async def main():
                             labels=labels,
                             match=match,
                             gps_exif_metadata=gps_exif_metadata,
-                            scaler_crop_maximum=scaler_crop_maximum,
+                            scaler_crop_maximum_ratio=scaler_crop_maximum_ratio,
+                            scaler_crop_maximum_offset=scaler_crop_maximum_offset,
                             low_resolution=low_resolution,
+                            main_resolution=main_resolution,
                             has_autofocus=has_autofocus,
                             burst=args.burst,
                             output_directory=output_directory,
@@ -1363,8 +1440,10 @@ async def main():
                             labels=labels,
                             match=match,
                             gps_mp4_metadata=gps_mp4_metadata,
-                            scaler_crop_maximum=scaler_crop_maximum,
+                            scaler_crop_maximum_ratio=scaler_crop_maximum_ratio,
+                            scaler_crop_maximum_offset=scaler_crop_maximum_offset,
                             low_resolution=low_resolution,
+                            main_resolution=main_resolution,
                             has_autofocus=has_autofocus,
                             autofocus_speed=autofocus_speed,
                             output_directory=output_directory,
