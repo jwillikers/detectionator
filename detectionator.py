@@ -39,13 +39,19 @@ logger = logging.getLogger(__name__)
 rectangles = []
 
 
-def draw_rectangles(request):
+def draw_rectangles(request, resolution_scale):
     with MappedArray(request, "main") as image:
         for rectangle in rectangles:
             x_min, y_min, x_max, y_max = rectangle[0:4]
 
-            rectangle_min = int(x_min), int(y_min)
-            rectangle_max = int(x_max), int(y_max)
+            rectangle_min = (
+                int(x_min) * resolution_scale[0],
+                int(y_min) * resolution_scale[1],
+            )
+            rectangle_max = (
+                int(x_max) * resolution_scale[0],
+                int(y_max) * resolution_scale[1],
+            )
             cv2.rectangle(image.array, rectangle_min, rectangle_max, (0, 255, 0, 0))
             if len(rectangle_min) == 5:
                 text = rectangle_min[4]
@@ -1174,7 +1180,13 @@ async def main():
         logger.info(
             f"ScalerCropMaximum: {rectangle_coordinate_width_height_to_string(scaler_crop_maximum)}"
         )
-        picam2.post_callback = draw_rectangles
+        picam2.post_callback = partial(
+            draw_rectangles,
+            resolution_scale=(
+                main_resolution_width / low_resolution_width,
+                main_resolution_height / low_resolution_height,
+            ),
+        )
         time.sleep(1)
         picam2.start()
 
