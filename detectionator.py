@@ -893,7 +893,7 @@ async def main():
 
     args.model = os.path.expanduser(args.model)
     is_yolo = False
-    if "yolov5" in args.model.stem:
+    if "yolov5" in pathlib.Path(args.model).stem:
         logger.info("Using YOLO model")
         is_yolo = True
 
