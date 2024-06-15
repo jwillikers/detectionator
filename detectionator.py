@@ -402,7 +402,7 @@ async def detect_and_capture(
             # 1/10 of a second results in about 80% CPU usage.
             # 1/20 of a second results in about 130% CPU usage.
             # todo Increase / decrease this wait based on recent detections.
-            await asyncio.sleep(0.075)
+            await asyncio.sleep(0)
             continue
 
         rectangles = [d[1] for d in detections]
@@ -447,7 +447,7 @@ async def detect_and_capture(
                 await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0)
             continue
 
         for detection in reversed(detections):
@@ -570,8 +570,8 @@ async def detect_and_record(
             )
         )
         if len(detections) == 0:
-            time.sleep(0.2)
-            await asyncio.sleep(0.1)
+            # time.sleep(0.2)
+            await asyncio.sleep(0)
             continue
 
         rectangles = [d[1] for d in detections]
@@ -616,8 +616,8 @@ async def detect_and_record(
                 await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
-            time.sleep(0.1)
-            await asyncio.sleep(0.1)
+            # time.sleep(0.1)
+            await asyncio.sleep(0)
             continue
 
         for detection in reversed(detections):
@@ -690,8 +690,8 @@ async def detect_and_record(
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
 
-        time.sleep(0.1)
-        await asyncio.sleep(0.1)
+        # time.sleep(0.1)
+        await asyncio.sleep(0)
 
         minimum_record_seconds = 6
         consecutive_failed_detections = 0
@@ -714,8 +714,8 @@ async def detect_and_record(
             )
             if len(detections) == 0:
                 consecutive_failed_detections += 1
-                time.sleep(0.2)
-                await asyncio.sleep(0.2)
+                # time.sleep(0.2)
+                await asyncio.sleep(0)
                 continue
 
             rectangles = [d[1] for d in detections]
@@ -806,8 +806,8 @@ async def detect_and_record(
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
             consecutive_failed_detections = 0
-            time.sleep(0.2)
-            await asyncio.sleep(0.1)
+            # time.sleep(0.2)
+            await asyncio.sleep(0)
             last_detection_time = datetime.datetime.now()
         output.stop()
         if not encoder_running:
