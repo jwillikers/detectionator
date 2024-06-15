@@ -47,7 +47,13 @@ def read_label_file(file_path):
     return ret
 
 
-def inference_tensorflow(image, model, labels, match_labels: list, threshold: float):
+def yolo_class_filter(classdata):
+    return [c.argmax() for c in classdata]
+
+
+def inference_tensorflow(
+    image, model, labels, match_labels: list, threshold: float, is_yolo: bool
+):
     interpreter = tflite.Interpreter(model_path=str(model), num_threads=4)
     interpreter.allocate_tensors()
 
@@ -70,10 +76,21 @@ def inference_tensorflow(image, model, labels, match_labels: list, threshold: fl
 
     interpreter.invoke()
 
-    detected_boxes = interpreter.get_tensor(output_details[0]["index"])
-    detected_classes = interpreter.get_tensor(output_details[1]["index"])
-    detected_scores = interpreter.get_tensor(output_details[2]["index"])
-    num_boxes = interpreter.get_tensor(output_details[3]["index"])
+    detected_boxes = []
+    detected_classes = []
+    detected_scores = []
+    if is_yolo:
+        output_data = interpreter.get_tensor(output_details[0]["index"])[0]
+        boxes = np.squeeze(output_data[..., :4])
+        detected_classes = yolo_class_filter(output_data[..., 5:])
+        detected_scores = np.squeeze(output_data[..., 4:5])  # confidences  [25200, 1]
+        x, y, w, h = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]  # xywh
+        detected_boxes = [x - w / 2, y - h / 2, x + w / 2, y + h / 2]  # xywh to xyxy
+    else:
+        detected_boxes = interpreter.get_tensor(output_details[0]["index"])
+        detected_classes = interpreter.get_tensor(output_details[1]["index"])
+        detected_scores = interpreter.get_tensor(output_details[2]["index"])
+        num_boxes = interpreter.get_tensor(output_details[3]["index"])
 
     detections = list()
     # detection:
@@ -326,12 +343,15 @@ async def detect_and_capture(
     gap: float,
     detection_threshold: float,
     focal_detection_threshold: float,
+    is_yolo: bool,
 ):
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
-            inference_tensorflow(image, model, labels, match, focal_detection_threshold)
+            inference_tensorflow(
+                image, model, labels, match, focal_detection_threshold, is_yolo
+            )
         )
         if len(detections) == 0:
             # Take a quick breather to give the CPU a break.
@@ -475,12 +495,15 @@ async def detect_and_record(
     audio: bool,
     detection_threshold: float,
     focal_detection_threshold: float,
+    is_yolo: bool,
 ):
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
     while True:
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
-            inference_tensorflow(image, model, labels, match, focal_detection_threshold)
+            inference_tensorflow(
+                image, model, labels, match, focal_detection_threshold, is_yolo
+            )
         )
         if len(detections) == 0:
             time.sleep(0.2)
@@ -599,7 +622,7 @@ async def detect_and_record(
             image = picam2.capture_array("lores")
             detections = sort_detections_by_confidence(
                 inference_tensorflow(
-                    image, model, labels, match, focal_detection_threshold
+                    image, model, labels, match, focal_detection_threshold, is_yolo
                 )
             )
             if len(detections) == 0:
@@ -869,6 +892,9 @@ async def main():
             pass
 
     args.model = os.path.expanduser(args.model)
+    is_yolo = False
+    if "yolov5" in args.model:
+        is_yolo = True
 
     label_file = None
     if args.label:
@@ -1211,6 +1237,11 @@ async def main():
                 lambda: asyncio.create_task(capture_sample_signal_handler()),
             )
 
+        # todo reshape image for YOLOv5?
+        # new_shape = (width, height)  # the shape the model was trained with
+        # if new_shape != lowresSize:
+        #     img = cv2.resize(img, new_shape)
+
         if args.startup_capture:
             if args.capture_mode == "video":
                 record_sample(gps_mp4_metadata)
@@ -1263,6 +1294,7 @@ async def main():
                             gap=args.gap,
                             detection_threshold=args.detection_threshold,
                             focal_detection_threshold=focal_detection_threshold,
+                            is_yolo=is_yolo,
                         ),
                         return_exceptions=True,
                     )
@@ -1287,6 +1319,7 @@ async def main():
                             audio=args.audio,
                             detection_threshold=args.detection_threshold,
                             focal_detection_threshold=focal_detection_threshold,
+                            is_yolo=is_yolo,
                         ),
                         return_exceptions=True,
                     )

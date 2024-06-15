@@ -28,8 +28,11 @@ gap = 0
 
 # Use a lower resolution for faster processing at the cost of being able to detect objects further away.
 # The default is 1/8 of the full resolution, 576x324, which is a pretty good for fairly close up, fast-moving objects.
+# Shape Yolov5 s was trained with
 low-resolution-width = 640
 low-resolution-height = 640
+
+# other models use resolution 320x240?
 # low-resolution-width = 576
 # low-resolution-height = 324
 
