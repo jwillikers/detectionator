@@ -473,6 +473,7 @@ async def detect_and_record(
     frame: int,
     gap: float,
     encoder,
+    encoder_quality: Quality,
     audio: bool,
     detection_threshold: float,
     focal_detection_threshold: float,
@@ -575,7 +576,7 @@ async def detect_and_record(
         encoder.output = [output] + encoder_outputs
         encoder_running = encoder.running
         if not encoder_running:
-            picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+            picam2.start_encoder(encoder, quality=encoder_quality)
 
         logger.info(f"Recording video '{file}'")
         output.start()
@@ -763,6 +764,12 @@ async def main():
         default=0.5,
     )
     parser.add_argument(
+        "--encoder-quality",
+        choices=["very-low", "low", "medium", "high", "very-high"],
+        help="The quality preset to use for the video encoder.",
+        default="very-high",
+    )
+    parser.add_argument(
         "--focal-detection-threshold",
         help="The percentage confidence required for the camera to focus on an object. Must be less than the value for --detection-threshold.",
         type=float,
@@ -934,6 +941,16 @@ async def main():
         autofocus_range = controls.AfRangeEnum.Normal
     elif args.autofocus_range == "macro":
         autofocus_range = controls.AfRangeEnum.Macro
+
+    encoder_quality = Quality.VERY_HIGH
+    if args.encoder_quality == "very-low":
+        encoder_quality = Quality.VERY_LOW
+    elif args.encoder_quality == "low":
+        encoder_quality = Quality.LOW
+    elif args.encoder_quality == "medium":
+        encoder_quality = Quality.MEDIUM
+    elif args.encoder_quality == "high":
+        encoder_quality = Quality.HIGH
 
     hdr_mode = controls.HdrModeEnum.SingleExposure
     if args.hdr_mode == "off":
@@ -1223,7 +1240,7 @@ async def main():
                 encoder_outputs = [encoder_outputs]
             encoder.output = [output] + encoder_outputs
             if not encoder.running:
-                picam2.start_encoder(encoder, quality=Quality.VERY_HIGH)
+                picam2.start_encoder(encoder, quality=encoder_quality)
             output.start()
 
         try:
@@ -1274,6 +1291,7 @@ async def main():
                             frame=frame,
                             gap=args.gap,
                             encoder=encoder,
+                            encoder_quality=encoder_quality,
                             audio=args.audio,
                             detection_threshold=args.detection_threshold,
                             focal_detection_threshold=focal_detection_threshold,

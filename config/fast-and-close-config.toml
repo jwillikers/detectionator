@@ -12,11 +12,16 @@ burst = 4
 # autofocus-range = "macro"
 autofocus-range = "full"
 
+autofocus-mode = "auto"
+
 # Focus the lens as quickly as possible.
 autofocus-speed = "fast"
 
-detection-threshold = 0.5
-focal-detection-threshold = 0.4
+detection-threshold = 0.4
+
+encoder-quality = "high"
+
+focal-detection-threshold = 0.25
 
 # Don't use a gap after a successful detection but start searching again immediately.
 gap = 0
