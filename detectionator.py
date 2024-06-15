@@ -352,20 +352,19 @@ async def detect_and_capture(
                 )
 
             bounding_boxes = [m[1] for m in reversed(possible_detections)]
-            adjusted_bounding_boxes = []
-            for bounding_box in bounding_boxes:
-                adjusted_bounding_boxes.append(
-                    scale(
-                        rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                        scaler_crop_maximum,
-                        low_resolution,
-                    )
+            scaled_bounding_boxes = [
+                scale(
+                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
+                    scaler_crop_maximum,
+                    low_resolution,
                 )
-            for adjusted_bounding_box in adjusted_bounding_boxes:
+                for bounding_box in bounding_boxes
+            ]
+            for scaled_bounding_box in scaled_bounding_boxes:
                 logger.info(
-                    f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_bounding_box)}"
+                    f"Scaled bounding box: {rectangle_coordinate_width_height_to_string(scaled_bounding_box)}"
                 )
-            picam2.set_controls({"AfWindows": adjusted_bounding_boxes})
+            picam2.set_controls({"AfWindows": scaled_bounding_boxes})
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
             await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
@@ -382,20 +381,19 @@ async def detect_and_capture(
             logger.info(f"Detection: {detection_to_string(detection)}")
 
         bounding_boxes = [m[1] for m in reversed(detections)]
-        adjusted_bounding_boxes = []
-        for bounding_box in bounding_boxes:
-            adjusted_bounding_boxes.append(
-                scale(
-                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                    scaler_crop_maximum,
-                    low_resolution,
-                )
+        scaled_bounding_boxes = [
+            scale(
+                rectangle_coordinates_to_coordinate_width_height(bounding_box),
+                scaler_crop_maximum,
+                low_resolution,
             )
-        for adjusted_bounding_box in adjusted_bounding_boxes:
+            for bounding_box in bounding_boxes
+        ]
+        for scaled_bounding_box in scaled_bounding_boxes:
             logger.info(
-                f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_bounding_box)}"
+                f"Scaled bounding box: {rectangle_coordinate_width_height_to_string(scaled_bounding_box)}"
             )
-        picam2.set_controls({"AfWindows": adjusted_bounding_boxes})
+        picam2.set_controls({"AfWindows": scaled_bounding_boxes})
         focus_cycle_job = None
         if has_autofocus:
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
@@ -499,20 +497,19 @@ async def detect_and_record(
                 )
 
             bounding_boxes = [m[1] for m in reversed(possible_detections)]
-            adjusted_bounding_boxes = []
-            for bounding_box in bounding_boxes:
-                adjusted_bounding_boxes.append(
-                    scale(
-                        rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                        scaler_crop_maximum,
-                        low_resolution,
-                    )
+            scaled_bounding_boxes = [
+                scale(
+                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
+                    scaler_crop_maximum,
+                    low_resolution,
                 )
-            for adjusted_bounding_box in adjusted_bounding_boxes:
+                for bounding_box in bounding_boxes
+            ]
+            for scaled_bounding_box in scaled_bounding_boxes:
                 logger.info(
-                    f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_bounding_box)}"
+                    f"Scaled bounding box: {rectangle_coordinate_width_height_to_string(scaled_bounding_box)}"
                 )
-            picam2.set_controls({"AfWindows": adjusted_bounding_boxes})
+            picam2.set_controls({"AfWindows": scaled_bounding_boxes})
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
             await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
@@ -531,20 +528,19 @@ async def detect_and_record(
 
         # todo Adjust focus to focus on "possible" detections when there is less confidence in a match.
         bounding_boxes = [m[1] for m in reversed(detections)]
-        adjusted_bounding_boxes = []
-        for bounding_box in bounding_boxes:
-            adjusted_bounding_boxes.append(
-                scale(
-                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                    scaler_crop_maximum,
-                    low_resolution,
-                )
+        scaled_bounding_boxes = [
+            scale(
+                rectangle_coordinates_to_coordinate_width_height(bounding_box),
+                scaler_crop_maximum,
+                low_resolution,
             )
-        for adjusted_bounding_box in adjusted_bounding_boxes:
+            for bounding_box in bounding_boxes
+        ]
+        for scaled_bounding_box in scaled_bounding_boxes:
             logger.info(
-                f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_bounding_box)}"
+                f"Scaled bounding box: {rectangle_coordinate_width_height_to_string(scaled_bounding_box)}"
             )
-        picam2.set_controls({"AfWindows": adjusted_bounding_boxes})
+        picam2.set_controls({"AfWindows": scaled_bounding_boxes})
         focus_cycle_job = None
         if has_autofocus:
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
@@ -622,22 +618,19 @@ async def detect_and_record(
                     )
 
                 bounding_boxes = [m[1] for m in reversed(possible_detections)]
-                adjusted_bounding_boxes = []
-                for bounding_box in bounding_boxes:
-                    adjusted_bounding_boxes.append(
-                        scale(
-                            rectangle_coordinates_to_coordinate_width_height(
-                                bounding_box
-                            ),
-                            scaler_crop_maximum,
-                            low_resolution,
-                        )
+                scaled_bounding_boxes = [
+                    scale(
+                        rectangle_coordinates_to_coordinate_width_height(bounding_box),
+                        scaler_crop_maximum,
+                        low_resolution,
                     )
-                for adjusted_bounding_box in adjusted_bounding_boxes:
+                    for bounding_box in bounding_boxes
+                ]
+                for scaled_bounding_box in scaled_bounding_boxes:
                     logger.info(
-                        f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_bounding_box)}"
+                        f"Scaled bounding box: {rectangle_coordinate_width_height_to_string(scaled_bounding_box)}"
                     )
-                picam2.set_controls({"AfWindows": adjusted_bounding_boxes})
+                picam2.set_controls({"AfWindows": scaled_bounding_boxes})
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
                 await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
@@ -658,20 +651,19 @@ async def detect_and_record(
             for detection in reversed(detections):
                 logger.info(f"Detection: {detection_to_string(detection)}")
             bounding_boxes = [m[1] for m in reversed(detections)]
-            adjusted_bounding_boxes = []
-            for bounding_box in bounding_boxes:
-                adjusted_bounding_boxes.append(
-                    scale(
-                        rectangle_coordinates_to_coordinate_width_height(bounding_box),
-                        scaler_crop_maximum,
-                        low_resolution,
-                    )
+            scaled_bounding_boxes = [
+                scale(
+                    rectangle_coordinates_to_coordinate_width_height(bounding_box),
+                    scaler_crop_maximum,
+                    low_resolution,
                 )
-            for adjusted_bounding_box in adjusted_bounding_boxes:
+                for bounding_box in bounding_boxes
+            ]
+            for scaled_bounding_box in scaled_bounding_boxes:
                 logger.info(
-                    f"Adjusted match box: {rectangle_coordinate_width_height_to_string(adjusted_bounding_box)}"
+                    f"Scaled bounding box: {rectangle_coordinate_width_height_to_string(scaled_bounding_box)}"
                 )
-            picam2.set_controls({"AfWindows": adjusted_bounding_boxes})
+            picam2.set_controls({"AfWindows": scaled_bounding_boxes})
             if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
                 await asyncio.sleep(0)
