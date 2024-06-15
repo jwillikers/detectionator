@@ -407,7 +407,7 @@ async def detect_and_capture(
                 )
 
             bounding_boxes = [d[1] for d in reversed(possible_detections)]
-            rectangles = bounding_boxes
+            rectangles = bounding_boxes.copy()
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -437,7 +437,7 @@ async def detect_and_capture(
             logger.info(f"Detection: {detection_to_string(detection)}")
 
         bounding_boxes = [d[1] for d in reversed(detections)]
-        rectangles = bounding_boxes
+        rectangles = bounding_boxes.copy()
         scaled_bounding_boxes = [
             scale(
                 rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -558,7 +558,7 @@ async def detect_and_record(
                 )
 
             bounding_boxes = [d[1] for d in reversed(possible_detections)]
-            rectangles = bounding_boxes
+            rectangles = bounding_boxes.copy()
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -589,7 +589,7 @@ async def detect_and_record(
             logger.info(f"Detection: {detection_to_string(detection)}")
 
         bounding_boxes = [d[1] for d in reversed(detections)]
-        rectangles = bounding_boxes
+        rectangles = bounding_boxes.copy()
         scaled_bounding_boxes = [
             scale(
                 rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -685,7 +685,7 @@ async def detect_and_record(
                     )
 
                 bounding_boxes = [d[1] for d in reversed(possible_detections)]
-                rectangles = bounding_boxes
+                rectangles = bounding_boxes.copy()
                 scaled_bounding_boxes = [
                     scale(
                         rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -719,7 +719,7 @@ async def detect_and_record(
             for detection in reversed(detections):
                 logger.info(f"Detection: {detection_to_string(detection)}")
             bounding_boxes = [d[1] for d in reversed(detections)]
-            rectangles = bounding_boxes
+            rectangles = bounding_boxes.copy()
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
