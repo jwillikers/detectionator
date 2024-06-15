@@ -76,7 +76,7 @@ def inference_tensorflow(image, model, labels, match_labels: list, threshold: fl
     num_boxes = interpreter.get_tensor(output_details[3]["index"])
 
     detections = list()
-    # match:
+    # detection:
     #   score
     #   rectangle
     #   label
@@ -111,7 +111,7 @@ def rectangle_coordinate_width_height_to_string(rectangle):
 
 # Convert a detection to a string representation.
 def detection_to_string(detection):
-    # match:
+    # detection:
     #   score
     #   rectangle
     #   label
