@@ -112,7 +112,7 @@ def inference_tensorflow(
         detected_classes = yolo_class_filter(output_data[..., 5:])
         detected_scores = np.squeeze(output_data[..., 4:5])  # confidences  [25200, 1]
         x, y, w, h = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]  # xywh
-        detected_boxes = [x - w / 2, y - h / 2, x + w / 2, y + h / 2]  # xywh to xyxy
+        detected_boxes = [y - h / 2, x - w / 2, y + h / 2, x + w / 2]  # xywh to yxyx
         num_boxes = len(detected_boxes)
     else:
         detected_boxes = interpreter.get_tensor(output_details[0]["index"])[0]
