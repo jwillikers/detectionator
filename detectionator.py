@@ -45,12 +45,12 @@ def draw_rectangles(request, resolution_scale):
             x_min, y_min, x_max, y_max = rectangle[0:4]
 
             rectangle_min = (
-                int(x_min * resolution_scale[0]),
-                int(y_min * resolution_scale[1]),
+                int(x_min * resolution_scale[0]) - 5,
+                int(y_min * resolution_scale[1]) - 5,
             )
             rectangle_max = (
-                int(x_max * resolution_scale[0]),
-                int(y_max * resolution_scale[1]),
+                int(x_max * resolution_scale[0]) + 5,
+                int(y_max * resolution_scale[1]) + 5,
             )
             cv2.rectangle(image.array, rectangle_min, rectangle_max, (0, 255, 0, 0))
             if len(rectangle_min) == 5:
