@@ -397,6 +397,7 @@ async def detect_and_capture(
             await asyncio.sleep(0.075)
             continue
 
+        rectangles = [d[1] for d in detections]
         possible_detections, detections = split_detections_based_on_confidence(
             detections, detection_threshold
         )
@@ -407,7 +408,6 @@ async def detect_and_capture(
                 )
 
             bounding_boxes = [d[1] for d in reversed(possible_detections)]
-            rectangles = bounding_boxes.copy()
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -437,7 +437,6 @@ async def detect_and_capture(
             logger.info(f"Detection: {detection_to_string(detection)}")
 
         bounding_boxes = [d[1] for d in reversed(detections)]
-        rectangles = bounding_boxes.copy()
         scaled_bounding_boxes = [
             scale(
                 rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -548,6 +547,7 @@ async def detect_and_record(
             await asyncio.sleep(0.1)
             continue
 
+        rectangles = [d[1] for d in detections]
         possible_detections, detections = split_detections_based_on_confidence(
             detections, detection_threshold
         )
@@ -558,7 +558,6 @@ async def detect_and_record(
                 )
 
             bounding_boxes = [d[1] for d in reversed(possible_detections)]
-            rectangles = bounding_boxes.copy()
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -589,7 +588,6 @@ async def detect_and_record(
             logger.info(f"Detection: {detection_to_string(detection)}")
 
         bounding_boxes = [d[1] for d in reversed(detections)]
-        rectangles = bounding_boxes.copy()
         scaled_bounding_boxes = [
             scale(
                 rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -675,6 +673,7 @@ async def detect_and_record(
                 await asyncio.sleep(0.2)
                 continue
 
+            rectangles = [d[1] for d in detections]
             possible_detections, detections = split_detections_based_on_confidence(
                 detections, detection_threshold
             )
@@ -685,7 +684,6 @@ async def detect_and_record(
                     )
 
                 bounding_boxes = [d[1] for d in reversed(possible_detections)]
-                rectangles = bounding_boxes.copy()
                 scaled_bounding_boxes = [
                     scale(
                         rectangle_coordinates_to_coordinate_width_height(bounding_box),
@@ -719,7 +717,6 @@ async def detect_and_record(
             for detection in reversed(detections):
                 logger.info(f"Detection: {detection_to_string(detection)}")
             bounding_boxes = [d[1] for d in reversed(detections)]
-            rectangles = bounding_boxes.copy()
             scaled_bounding_boxes = [
                 scale(
                     rectangle_coordinates_to_coordinate_width_height(bounding_box),
