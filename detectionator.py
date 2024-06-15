@@ -377,7 +377,6 @@ async def detect_and_capture(
     gps_exif_metadata: dict,
     scaler_crop_maximum_ratio: tuple[Real, Real],
     scaler_crop_maximum_offset: tuple[Real, Real],
-    low_resolution: tuple[int, int],
     main_resolution: tuple[int, int],
     has_autofocus,
     burst: bool,
@@ -548,7 +547,6 @@ async def detect_and_record(
     gps_mp4_metadata: dict,
     scaler_crop_maximum_ratio: tuple[Real, Real],
     scaler_crop_maximum_offset: tuple[Real, Real],
-    low_resolution: tuple[int, int],
     main_resolution: tuple[int, int],
     has_autofocus,
     autofocus_speed,
@@ -1119,15 +1117,6 @@ async def main():
                 picam2.sensor_resolution[1] // default_low_resolution_scale
             )
 
-        # if (
-        #     picam2.sensor_resolution[0] / low_resolution_width
-        #     != picam2.sensor_resolution[1] / low_resolution_height
-        # ):
-        #     logger.error(
-        #         f"The low resolution width, '{low_resolution_width}', and low resolution height, '{low_resolution_height}' must be a fraction of the resolution, '{picam2.sensor_resolution}'"
-        #     )
-        #     sys.exit(1)
-
         low_resolution = (low_resolution_width, low_resolution_height)
 
         if args.main_resolution_width:
@@ -1418,7 +1407,6 @@ async def main():
                             gps_exif_metadata=gps_exif_metadata,
                             scaler_crop_maximum_ratio=scaler_crop_maximum_ratio,
                             scaler_crop_maximum_offset=scaler_crop_maximum_offset,
-                            low_resolution=low_resolution,
                             main_resolution=main_resolution,
                             has_autofocus=has_autofocus,
                             burst=args.burst,
@@ -1442,7 +1430,6 @@ async def main():
                             gps_mp4_metadata=gps_mp4_metadata,
                             scaler_crop_maximum_ratio=scaler_crop_maximum_ratio,
                             scaler_crop_maximum_offset=scaler_crop_maximum_offset,
-                            low_resolution=low_resolution,
                             main_resolution=main_resolution,
                             has_autofocus=has_autofocus,
                             autofocus_speed=autofocus_speed,
