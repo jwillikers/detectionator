@@ -28,12 +28,14 @@ gap = 0
 
 # Use a lower resolution for faster processing at the cost of being able to detect objects further away.
 # The default is 1/8 of the full resolution, 576x324, which is a pretty good for fairly close up, fast-moving objects.
+low-resolution-width = 640
+low-resolution-height = 640
 # low-resolution-width = 576
 # low-resolution-height = 324
 
 # Below are standard options.
-label = "/usr/local/share/detectionator/models/coco_labels.txt"
+label = "/usr/local/share/detectionator/models/coco_labels_yolov5.txt"
 log-level = "info"
 match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
-model = "/usr/local/share/detectionator/models/mobilenet_v2.tflite"
+model = "/usr/local/share/detectionator/models/yolov5s-fp16.tflite"
 output = "~/Pictures"

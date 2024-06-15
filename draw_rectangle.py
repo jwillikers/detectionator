@@ -1,40 +1,28 @@
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from PIL import Image
+import cv2
 
-# im = Image.open("/home/jordan/vlcsnap-2024-06-13-18h57m26s400.png")
-im = Image.open("/home/jordan/vlcsnap-2024-06-13-22h03m18s521.png")
+img = cv2.imread("/home/jordan/vlcsnap-2024-06-15-11h27m49s864.png")
 
-# Create figure and axes
-fig, ax = plt.subplots()
-
-# Display the image
-ax.imshow(im)
-
-# Create a Rectangle patch
-# rect = patches.Rectangle((98, 79), 33, 76, linewidth=1, edgecolor="r", facecolor="none")
-# rect = patches.Rectangle(
-#     (29 * 2 - 5, 79 * 2 - 5),
-#     55 * 2 - 5,
-#     82 * 2 - 5,
-#     linewidth=1,
-#     edgecolor="r",
-#     facecolor="none",
-# )
-
+# 4608x2592
 # 576x324 -> 1920x1080
 # 1920 / 576 = 3.3333
 # 1080 / 324 = 3.3333
-rect = patches.Rectangle(
-    (226 * 3.333333, 42 * 3.333333),
-    31 * 3.333333,
-    40 * 3.333333,
-    linewidth=1,
-    edgecolor="r",
-    facecolor="none",
+
+x1 = 69.1488191485405
+y1 = 293.4028208255768
+x2 = 194.98350620269775
+y2 = 158.028906583786
+
+x_crop = (4608 % 1920) // 2
+buffer = 5
+# x_crop = 0
+
+cv2.rectangle(
+    img,
+    (int(x1 * 3.333333) + x_crop + buffer, int(y1 * 3.333333) + buffer),
+    (int(x2 * 3.333333) + x_crop + buffer, int(y2 * 3.333333) + buffer),
+    (0, 255, 0, 0),
 )
 
-# Add the patch to the Axes
-ax.add_patch(rect)
-
-plt.show()
+cv2.imshow("bounding_box", img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
