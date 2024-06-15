@@ -650,14 +650,14 @@ async def detect_and_record(
                 time.sleep(0.1)
                 await asyncio.sleep(0.1)
                 # todo Should this set consecutive failed detections to zero, increment failed detections, or do nothing?
+                # For now, err on the side of recording a lengthier video and reset everything as if there was a confident detection.
                 consecutive_failed_detections = 0
+                last_detection_time = datetime.datetime.now()
                 continue
 
-            for match in sorted(detections, key=lambda x: x[0], reverse=True):
-                logger.info(f"Detection: {detection_to_string(match)}")
-            bounding_boxes = [
-                m[1] for m in sorted(detections, key=lambda x: x[0], reverse=True)
-            ]
+            for detection in reversed(detections):
+                logger.info(f"Detection: {detection_to_string(detection)}")
+            bounding_boxes = [m[1] for m in reversed(detections)]
             adjusted_bounding_boxes = []
             for bounding_box in bounding_boxes:
                 adjusted_bounding_boxes.append(
