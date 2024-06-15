@@ -44,8 +44,8 @@ def draw_rectangles(request):
         for rectangle in rectangles:
             x_min, y_min, x_max, y_max = rectangle[0:4]
 
-            rectangle_min = x_min, y_min
-            rectangle_max = x_max, y_max
+            rectangle_min = int(x_min), int(y_min)
+            rectangle_max = int(x_max), int(y_max)
             cv2.rectangle(image.array, rectangle_min, rectangle_max, (0, 255, 0, 0))
             if len(rectangle_min) == 5:
                 text = rectangle_min[4]
