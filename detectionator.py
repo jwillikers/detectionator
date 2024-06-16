@@ -531,11 +531,6 @@ async def detect_and_capture(
                 signal_function=partial(captured_file, filename, detections),
             )
             frame += 1
-        if has_autofocus:
-            picam2.set_controls({"AfWindows": [max_window]})
-            focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            if not picam2.wait(focus_cycle_job):
-                logger.warning("Autofocus cycle failed.")
         await asyncio.sleep(gap)
 
 
@@ -804,13 +799,6 @@ async def detect_and_record(
             picam2.stop_encoder(encoder)
         encoder.output = encoder_outputs
         logger.info(f"Finished recording video '{file}'")
-        # Reset focal point
-        if has_autofocus:
-            picam2.set_controls({"AfWindows": [max_window]})
-            focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            await asyncio.sleep(0)
-            if not picam2.wait(focus_cycle_job):
-                logger.warning("Autofocus cycle failed.")
         frame += 1
 
 
