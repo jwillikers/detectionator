@@ -41,12 +41,18 @@ rectangles = []
 
 
 def draw_bounding_boxes(
-    request, resolution_scale: tuple[Real, Real], resolution: tuple[Real, Real]
+    request,
+    resolution_scale: tuple[Real, Real],
+    resolution: tuple[Real, Real],
+    scale_factor: Real = 1,
 ):
     with MappedArray(request, "main") as image:
         for rectangle in rectangles:
             box = cast_int(
-                clamp(pad(scale(rectangle[0:4], resolution_scale), 5), resolution)
+                clamp(
+                    scale(scale(rectangle[0:4], resolution_scale), scale_factor),
+                    resolution,
+                )
             )
             x_min, y_min, _, _ = box
             cv2.rectangle(
@@ -327,6 +333,25 @@ def pad(rectangle, padding: Real):
     return x_min - padding, y_min - padding, x_max + padding, y_max + padding
 
 
+# Expand or contract a rectangle based on the given factor.
+# The factor should be positive for expansion and negative for contraction.
+# The rectangle should be represented by the minimum and maximum coordinates.
+def dilate(rectangle, factor: Real):
+    x_min, y_min, x_max, y_max = rectangle
+    width = x_max - x_min
+    height = y_max - y_min
+    additional_width = width * factor
+    additional_height = height * factor
+    additional_width_per_side = additional_width / 2
+    additional_height_per_side = additional_height / 2
+    return (
+        x_min - additional_width_per_side,
+        y_min - additional_height_per_side,
+        x_max + additional_width_per_side,
+        y_max + additional_height_per_side,
+    )
+
+
 # Convert the components of a rectangle to integers.
 def cast_int(rectangle):
     x_min, y_min, x_max, y_max = rectangle
@@ -390,6 +415,7 @@ async def detect_and_capture(
     detection_threshold: float,
     focal_detection_threshold: float,
     is_yolo: bool,
+    bounding_box_scale_factor: Real,
 ):
     global rectangles
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
@@ -425,12 +451,12 @@ async def detect_and_capture(
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
                         clamp(
-                            pad(
+                            dilate(
                                 scale(
                                     translate(bounding_box, scaler_crop_maximum_offset),
                                     scaler_crop_maximum_ratio,
                                 ),
-                                5,
+                                bounding_box_scale_factor,
                             ),
                             main_resolution,
                         )
@@ -463,12 +489,12 @@ async def detect_and_capture(
             cast_int(
                 rectangle_coordinates_to_coordinate_width_height(
                     clamp(
-                        pad(
+                        dilate(
                             scale(
                                 translate(bounding_box, scaler_crop_maximum_offset),
                                 scaler_crop_maximum_ratio,
                             ),
-                            5,
+                            bounding_box_scale_factor,
                         ),
                         main_resolution,
                     )
@@ -553,6 +579,7 @@ async def detect_and_record(
     detection_threshold: float,
     focal_detection_threshold: float,
     is_yolo: bool,
+    bounding_box_scale_factor: Real,
 ):
     global rectangles
     _, max_window, _ = picam2.camera_controls["ScalerCrop"]
@@ -583,12 +610,12 @@ async def detect_and_record(
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
                         clamp(
-                            pad(
+                            dilate(
                                 scale(
                                     translate(bounding_box, scaler_crop_maximum_offset),
                                     scaler_crop_maximum_ratio,
                                 ),
-                                5,
+                                bounding_box_scale_factor,
                             ),
                             main_resolution,
                         )
@@ -621,12 +648,12 @@ async def detect_and_record(
             cast_int(
                 rectangle_coordinates_to_coordinate_width_height(
                     clamp(
-                        pad(
+                        dilate(
                             scale(
                                 translate(bounding_box, scaler_crop_maximum_offset),
                                 scaler_crop_maximum_ratio,
                             ),
-                            5,
+                            bounding_box_scale_factor,
                         ),
                         main_resolution,
                     )
@@ -723,14 +750,14 @@ async def detect_and_record(
                     cast_int(
                         rectangle_coordinates_to_coordinate_width_height(
                             clamp(
-                                pad(
+                                dilate(
                                     scale(
                                         translate(
                                             bounding_box, scaler_crop_maximum_offset
                                         ),
                                         scaler_crop_maximum_ratio,
                                     ),
-                                    5,
+                                    bounding_box_scale_factor,
                                 ),
                                 main_resolution,
                             )
@@ -764,12 +791,12 @@ async def detect_and_record(
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
                         clamp(
-                            pad(
+                            dilate(
                                 scale(
                                     translate(bounding_box, scaler_crop_maximum_offset),
                                     scaler_crop_maximum_ratio,
                                 ),
-                                5,
+                                bounding_box_scale_factor,
                             ),
                             main_resolution,
                         )
@@ -833,6 +860,12 @@ async def main():
         choices=["normal", "fast"],
         help="The speed with which to autofocus the lens.",
         default="fast",
+    )
+    parser.add_argument(
+        "--bounding-box-scale-factor",
+        help="The amount to scale the bounding box.",
+        type=Real,
+        default=1.1,
     )
     parser.add_argument(
         "--buffers",
@@ -1237,6 +1270,7 @@ async def main():
                     main_resolution_height / low_resolution_height,
                 ),
                 resolution=main_resolution,
+                scale_factor=args.bounding_box_scale_factor,
             )
         time.sleep(1)
         picam2.start()
@@ -1405,6 +1439,7 @@ async def main():
                             detection_threshold=args.detection_threshold,
                             focal_detection_threshold=focal_detection_threshold,
                             is_yolo=is_yolo,
+                            bounding_box_scale_factor=args.bounding_box_scale_factor,
                         ),
                         return_exceptions=True,
                     )
@@ -1430,6 +1465,7 @@ async def main():
                             detection_threshold=args.detection_threshold,
                             focal_detection_threshold=focal_detection_threshold,
                             is_yolo=is_yolo,
+                            bounding_box_scale_factor=args.bounding_box_scale_factor,
                         ),
                         return_exceptions=True,
                     )
