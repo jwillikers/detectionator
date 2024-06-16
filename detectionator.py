@@ -934,6 +934,11 @@ async def main():
         "--output", help="Directory path for the output images.", type=pathlib.Path
     )
     parser.add_argument(
+        "--rtsp-tcp",
+        action=argparse.BooleanOptionalAction,
+        help="Stream to the RTSP server using TCP",
+    )
+    parser.add_argument(
         "--startup-capture",
         help="Take sample photographs when starting the program.",
         action=argparse.BooleanOptionalAction,
@@ -943,14 +948,15 @@ async def main():
         help="The web address to which to stream video via RTSP like 'mediamtx.jwillikers.io:8554/detectionator'",
     )
     parser.add_argument(
-        "--rtsp-tcp",
-        action=argparse.BooleanOptionalAction,
-        help="Stream to the RTSP server using TCP",
-    )
-    parser.add_argument(
         "--systemd-notify",
         help="Enable systemd-notify support for running as a systemd service.",
         action=argparse.BooleanOptionalAction,
+    )
+    parser.add_argument(
+        "--threads",
+        help="The number of threads to use to inference with TensorFlow.",
+        default=len(os.sched_getaffinity(0)),
+        type=int,
     )
     args = parser.parse_args()
 
@@ -1066,6 +1072,12 @@ async def main():
         hdr_mode = controls.HdrModeEnum.Off
     elif args.hdr_mode == "night":
         hdr_mode = controls.HdrModeEnum.Night
+
+    number_of_cpu_cores = len(os.sched_getaffinity(0))
+    if args.threads > number_of_cpu_cores:
+        logger.warning(
+            f"Requested {args.threads} threads which is more than {number_of_cpu_cores}, the total number of CPU cores available."
+        )
 
     # Camera Module 3 has a full resolution of 4608x2592.
     # A scale of 2, really 1/2, results in a resolution of 2304x1296.
@@ -1229,7 +1241,9 @@ async def main():
         time.sleep(1)
         picam2.start()
 
-        interpreter = tflite.Interpreter(model_path=str(args.model), num_threads=4)
+        interpreter = tflite.Interpreter(
+            model_path=str(args.model), num_threads=args.threads
+        )
         interpreter.allocate_tensors()
 
         gps_exif_metadata = {}
