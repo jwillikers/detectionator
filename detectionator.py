@@ -751,7 +751,7 @@ async def detect_and_record(
                     logger.warning("Autofocus cycle failed.")
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
-                time.sleep(0.15)
+                time.sleep(0.2)
                 # todo Should this set consecutive failed detections to zero, increment failed detections, or do nothing?
                 # For now, err on the side of recording a lengthier video and reset everything as if there was a confident detection.
                 consecutive_failed_detections = 0
