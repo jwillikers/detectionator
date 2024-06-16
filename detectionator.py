@@ -452,7 +452,6 @@ async def detect_and_capture(
                 await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
-            await asyncio.sleep(0)
             time.sleep(0.15)
             continue
 
@@ -498,12 +497,10 @@ async def detect_and_capture(
             detection_names = "-".join([i[2] for i in detections])
         filename = os.path.join(output_directory, f"{detection_names}-{frame}.jpg")
         if has_autofocus:
-            await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
                 picam2.set_controls({"AfWindows": [max_window]})
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
                 logger.warning("Autofocus cycle failed.")
-                await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
         picam2.capture_file(
@@ -521,12 +518,10 @@ async def detect_and_capture(
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
             filename = os.path.join(output_directory, f"{detection_names}-{frame}.jpg")
             if has_autofocus:
-                await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     picam2.set_controls({"AfWindows": [max_window]})
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
                     logger.warning("Autofocus cycle failed.")
-                    await asyncio.sleep(0)
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
             picam2.capture_file(
@@ -539,7 +534,6 @@ async def detect_and_capture(
         if has_autofocus:
             picam2.set_controls({"AfWindows": [max_window]})
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
-            await asyncio.sleep(0)
             if not picam2.wait(focus_cycle_job):
                 logger.warning("Autofocus cycle failed.")
         await asyncio.sleep(gap)
@@ -623,7 +617,6 @@ async def detect_and_record(
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
             time.sleep(0.15)
-            await asyncio.sleep(0)
             continue
 
         for detection in reversed(detections):
@@ -692,12 +685,10 @@ async def detect_and_record(
                 picam2.set_controls({"AfWindows": [max_window]})
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
                 logger.warning("Autofocus cycle failed.")
-                await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     logger.warning("Autofocus cycle failed.")
 
         time.sleep(0.125)
-        await asyncio.sleep(0)
 
         minimum_record_seconds = 6
         consecutive_failed_detections = 0
@@ -720,7 +711,6 @@ async def detect_and_record(
             )
             if len(detections) == 0:
                 consecutive_failed_detections += 1
-                await asyncio.sleep(0)
                 time.sleep(0.2)
                 continue
 
@@ -760,15 +750,12 @@ async def detect_and_record(
                     )
                 picam2.set_controls({"AfWindows": scaled_bounding_boxes})
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
-                await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     picam2.set_controls({"AfWindows": [max_window]})
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
                     logger.warning("Autofocus cycle failed.")
-                    await asyncio.sleep(0)
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
-                await asyncio.sleep(0.1)
                 time.sleep(0.15)
                 # todo Should this set consecutive failed detections to zero, increment failed detections, or do nothing?
                 # For now, err on the side of recording a lengthier video and reset everything as if there was a confident detection.
@@ -803,16 +790,13 @@ async def detect_and_record(
             picam2.set_controls({"AfWindows": scaled_bounding_boxes})
             if has_autofocus:
                 focus_cycle_job = picam2.autofocus_cycle(wait=False)
-                await asyncio.sleep(0)
                 if not picam2.wait(focus_cycle_job):
                     picam2.set_controls({"AfWindows": [max_window]})
                     focus_cycle_job = picam2.autofocus_cycle(wait=False)
                     logger.warning("Autofocus cycle failed.")
-                    await asyncio.sleep(0)
                     if not picam2.wait(focus_cycle_job):
                         logger.warning("Autofocus cycle failed.")
             consecutive_failed_detections = 0
-            await asyncio.sleep(0)
             time.sleep(0.2)
             last_detection_time = datetime.datetime.now()
         output.stop()
