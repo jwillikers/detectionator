@@ -15,14 +15,14 @@ RestartSec=10
 KillMode=process
 
 # Steal all of the CPU time.
-#Nice=-19
-#CPUSchedulingPolicy=fifo
-#CPUSchedulingPriority=90
+Nice=-19
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=90
 User=detectionator
 Group=detectionator
 AmbientCapabilities=CAP_SYS_ADMIN CAP_SYS_NICE
-#IOSchedulingClass=realtime
-#IOSchedulingPriority=1
+IOSchedulingClass=realtime
+IOSchedulingPriority=1
 
 [Install]
 WantedBy=multi-user.target

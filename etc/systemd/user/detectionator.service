@@ -15,13 +15,10 @@ RestartSec=10
 KillMode=process
 
 # Steal all of the CPU time.
-# Nice=-19
-# CPUSchedulingPolicy=fifo
-# CPUSchedulingPriority=90
-# todo Might need to run service as root for these to take effect.
-# User=jordan
-# Group=jordan
-# AmbientCapabilities=CAP_SYS_ADMIN CAP_SYS_NICE
+Nice=-19
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=90
+AmbientCapabilities=CAP_SYS_ADMIN CAP_SYS_NICE
 # IOSchedulingClass=realtime
 # IOSchedulingPriority=1
 
