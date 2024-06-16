@@ -1203,9 +1203,7 @@ async def main():
                     "AfMetering": controls.AfMeteringEnum.Windows,
                     "AfMode": autofocus_mode,
                     "AfRange": autofocus_range,
-                    "AfSpeed": autofocus_speed
-                    if args.capture_mode == "still"
-                    else controls.AfSpeedEnum.Normal,
+                    "AfSpeed": autofocus_speed,
                 }
             )
         scaler_crop_maximum = picam2.camera_properties["ScalerCropMaximum"]
