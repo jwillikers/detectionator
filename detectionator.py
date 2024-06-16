@@ -864,7 +864,7 @@ async def main():
     parser.add_argument(
         "--bounding-box-scale-factor",
         help="The amount to scale the bounding box.",
-        type=Real,
+        type=float,
         default=1.1,
     )
     parser.add_argument(
