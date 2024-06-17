@@ -50,7 +50,7 @@ def draw_bounding_boxes(
         for rectangle in rectangles:
             box = cast_int(
                 clamp(
-                    scale(scale(rectangle[0:4], resolution_scale), scale_factor),
+                    dilate(scale(rectangle[0:4], resolution_scale), scale_factor),
                     resolution,
                 )
             )
