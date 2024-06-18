@@ -711,6 +711,15 @@ async def detect_and_record(
 
         time.sleep(0.125)
 
+        if has_autofocus:
+            focus_cycle_job = picam2.autofocus_cycle(wait=False)
+            if not picam2.wait(focus_cycle_job):
+                picam2.set_controls({"AfWindows": [max_window]})
+                focus_cycle_job = picam2.autofocus_cycle(wait=False)
+                logger.warning("Autofocus cycle failed.")
+                if not picam2.wait(focus_cycle_job):
+                    logger.warning("Autofocus cycle failed.")
+
         minimum_record_seconds = 6
         consecutive_failed_detections = 0
         consecutive_failed_detections_to_stop = 10
@@ -731,6 +740,14 @@ async def detect_and_record(
                 )
             )
             if len(detections) == 0:
+                if has_autofocus:
+                    focus_cycle_job = picam2.autofocus_cycle(wait=False)
+                    if not picam2.wait(focus_cycle_job):
+                        picam2.set_controls({"AfWindows": [max_window]})
+                        focus_cycle_job = picam2.autofocus_cycle(wait=False)
+                        logger.warning("Autofocus cycle failed.")
+                        if not picam2.wait(focus_cycle_job):
+                            logger.warning("Autofocus cycle failed.")
                 consecutive_failed_detections += 1
                 time.sleep(0.2)
                 continue
@@ -838,6 +855,8 @@ async def main():
         ],
         config_file_parser_class=configargparse.TomlConfigParser(["detectionator"]),
     )
+    # todo Add an option to set the lense position manually.
+    # todo Add an option to disable autofocus.
     parser.add_argument(
         "--audio",
         help="Include audio with video stream.",
@@ -1231,7 +1250,6 @@ async def main():
                     "size": low_resolution,
                 },
             )
-        # todo See how forcing the streams into alignment effects performance.
         # todo Make this a configuration option, enabled by default.
         picam2.align_configuration(config)
         low_resolution = config["lores"]["size"]
@@ -1263,6 +1281,8 @@ async def main():
         )
 
         if args.draw_bounding_boxes:
+            # Apparently the windows used for AfWindows work best when they are between 1/4 and 1/12 the size of the total sensor area.
+            # todo Scale the AfWindows values up or down accordingly.
             picam2.post_callback = partial(
                 draw_bounding_boxes,
                 resolution_scale=(
