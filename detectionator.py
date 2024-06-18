@@ -855,6 +855,11 @@ async def main():
         ],
         config_file_parser_class=configargparse.TomlConfigParser(["detectionator"]),
     )
+    parser.add_argument(
+        "--align-resolutions",
+        help="Adjust the camera resolutions to the optimal alignment.",
+        action=argparse.BooleanOptionalAction,
+    )
     # todo Add an option to set the lense position manually.
     # todo Add an option to disable autofocus.
     parser.add_argument(
@@ -1250,8 +1255,8 @@ async def main():
                     "size": low_resolution,
                 },
             )
-        # todo Make this a configuration option, enabled by default.
-        picam2.align_configuration(config)
+        if args.align_resolutions:
+            picam2.align_configuration(config)
         low_resolution = config["lores"]["size"]
         main_resolution = config["main"]["size"]
         logger.info(f"Aligned low resolution: {low_resolution}")
