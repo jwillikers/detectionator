@@ -1267,6 +1267,7 @@ async def main():
         if has_autofocus:
             picam2.set_controls(
                 {
+                    # todo Add option to control AfMetering mode.
                     "AfMetering": controls.AfMeteringEnum.Windows,
                     "AfMode": autofocus_mode,
                     "AfRange": autofocus_range,
