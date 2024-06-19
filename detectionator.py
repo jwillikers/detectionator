@@ -1282,8 +1282,8 @@ async def main():
         scaler_crop_maximum_offset = (scaler_crop_maximum[0], scaler_crop_maximum[1])
 
         scaler_crop_maximum_ratio = (
-            scaler_crop_maximum[2] / low_resolution_width,
-            scaler_crop_maximum[3] / low_resolution_height,
+            scaler_crop_maximum[2] / low_resolution[0],
+            scaler_crop_maximum[3] / low_resolution[1],
         )
 
         if args.draw_bounding_boxes:
@@ -1292,8 +1292,8 @@ async def main():
             picam2.post_callback = partial(
                 draw_bounding_boxes,
                 resolution_scale=(
-                    main_resolution_width / low_resolution_width,
-                    main_resolution_height / low_resolution_height,
+                    main_resolution[0] / low_resolution[0],
+                    main_resolution[1] / low_resolution[1],
                 ),
                 resolution=main_resolution,
                 scale_factor=args.bounding_box_scale_factor,
