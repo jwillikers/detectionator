@@ -165,7 +165,7 @@ set new_subgid (math (tail -1 /etc/subgid | awk -F ":" '{print $2}') + 65536)
 sudo usermod \
   --add-subuids $new_subuid-(math $new_subuid + 65535) \
   --add-subgids $new_subgid-(math $new_subgid + 65535) \
-  core
+  detectionator
 ----
 
 .. Automatically start the core user's session.
@@ -277,10 +277,10 @@ dtparam=rtc_bbat_vchg=3000000
 
 # Reduce clockspeeds and temperature limit to reduce the likelihood of crashes.
 # Crashes seem particularly common when recording video.
-arm_freq = 2000
-core_freq = 900
-v3d_freq = 900
-temp_limit = 80
+#arm_freq = 2000
+#core_freq = 900
+#v3d_freq = 900
+#temp_limit = 80
 
 disable_camera_led = 1
 ----
