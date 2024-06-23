@@ -115,14 +115,15 @@ def inference_tensorflow(
     detected_scores = []
     num_boxes = 0
     if is_yolo:
-        output_data = interpreter.get_tensor(output_details[0]["index"])
-        boxes = np.squeeze(output_data[0][..., :4])
-        detected_classes = yolo_class_filter(output_data[0][..., 5:])
+        output_data = interpreter.get_tensor(output_details[0]["index"])[0]
+        boxes = np.squeeze(output_data[..., :4])
         detected_scores = np.squeeze(
-            output_data[0][..., 4:5]
+            output_data[..., 4:5]
         )  # confidences  [25200, 1]
+        detected_classes = yolo_class_filter(output_data[..., 5:])
         x, y, w, h = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]  # xywh
-        detected_boxes = [y - h / 2, x - w / 2, y + h / 2, x + w / 2]  # xywh to yxyx
+        # detected_boxes = [y - h / 2, x - w / 2, y + h / 2, x + w / 2]  # xywh to yxyx
+        detected_boxes = [x - w / 2, y - h / 2, x + w / 2, y + h / 2]
         num_boxes = len(detected_scores)
     else:
         detected_boxes = interpreter.get_tensor(output_details[0]["index"])[0]
@@ -140,8 +141,15 @@ def inference_tensorflow(
         if match_labels and labels[class_id] not in match_labels:
             continue
         score = detected_scores[i]
-        if score > threshold:
-            bottom, left, top, right = detected_boxes[i]
+        if score > threshold and score <= 1.0:
+            bottom, left, top, right = (0, 0, 0, 0)
+            if is_yolo:
+                bottom = detected_boxes[0][i]
+                left = detected_boxes[1][i]
+                top = detected_boxes[2][i]
+                right = detected_boxes[3][i]
+            else:
+                bottom, left, top, right = detected_boxes[i]
             x_min = left * initial_width
             y_min = bottom * initial_height
             x_max = right * initial_width
