@@ -116,6 +116,8 @@ def percentage_intersecting(r1, r2):
     logger.info(f"intersection: {intersection}")
     if intersection is None:
         return 0
+    tmp = intersection / union_area(r1, r2)
+    logger.info(f"intersection %: {tmp}")
     return intersection / union_area(r1, r2)
 
 
