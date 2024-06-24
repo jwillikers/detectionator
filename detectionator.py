@@ -112,7 +112,10 @@ def rectangle_area(rectangle):
 
 
 def percentage_intersecting(r1, r2):
-    return intersection_area(r1, r2) / union_area(r1, r2)
+    intersection = intersection_area(r1, r2)
+    if intersection is None:
+        return 0
+    return intersection / union_area(r1, r2)
 
 
 def combine_rectangles(r1, r2):
@@ -146,7 +149,7 @@ def combine_duplicate_detections(detections, min_overlap: float):
     if not detections:
         return detections
 
-    if len(detections) == 1:
+    if len(detections) <= 1:
         return detections
 
     deduplicated_detections = []
@@ -553,6 +556,7 @@ async def detect_and_capture(
                 logger.info(
                     f"Scaled bounding box: {rectangle_coordinate_width_height_to_string(scaled_bounding_box)}"
                 )
+            # todo Combine overlapping bounding boxes when setting AfWindows.
             picam2.set_controls({"AfWindows": scaled_bounding_boxes})
             focus_cycle_job = picam2.autofocus_cycle(wait=False)
             await asyncio.sleep(0)
