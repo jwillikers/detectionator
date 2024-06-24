@@ -90,6 +90,9 @@ def yolo_class_filter(classdata):
 
 # Determine if two rectangles are duplicates according to the given percentage of overlap.
 def rectangles_are_duplicates(r1, r2, min_overlap: float):
+    tmp = percentage_intersecting(r1, r2)
+    logger.info(f"percentage_intersecting(r1, r2) = {tmp}")
+    logger.info(f"min_overlap = {min_overlap}")
     return percentage_intersecting(r1, r2) >= min_overlap
 
 
