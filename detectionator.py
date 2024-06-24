@@ -87,6 +87,7 @@ def read_label_file(file_path):
 def yolo_class_filter(classdata):
     return [c.argmax() for c in classdata]
 
+
 # Determine if two rectangles are duplicates according to the given percentage of overlap.
 def rectangles_are_duplicates(r1, r2, min_overlap: float):
     return percentage_intersecting(r1, r2) >= min_overlap
@@ -149,9 +150,6 @@ def detections_are_duplicates(d1, d2, min_overlap: float):
 # Duplicate detections are combined to a single detection.
 # The coordinates for the combined bounding box are the minimum coordinates that encapsulate all of the individual bounding boxes.
 def combine_duplicate_detections(detections, min_overlap: float):
-    if not detections:
-        return detections
-
     if len(detections) <= 1:
         return detections
 
@@ -163,6 +161,7 @@ def combine_duplicate_detections(detections, min_overlap: float):
         j = 0
         while i + j < len(sorted_detections) and detections_are_duplicates(current, sorted_detections[j], min_overlap):
             current = combine_detections(current, sorted_detections[j])
+            logger.info(f"combined detection: {current}")
             j += 1
         deduplicated_detections.append(current)
         i += j + 1
