@@ -243,8 +243,7 @@ def inference_tensorflow(
             if labels:
                 detection = (*detection, labels[class_id])
             detections.append(detection)
-    combine_duplicate_detections(detections, 0.8)
-    return detections
+    return combine_duplicate_detections(detections, 0.8)
 
 
 # Convert a rectangle defined by two coordinates to a string representation.
