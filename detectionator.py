@@ -113,6 +113,7 @@ def rectangle_area(rectangle):
 
 def percentage_intersecting(r1, r2):
     intersection = intersection_area(r1, r2)
+    logger.info(f"intersection: {intersection}")
     if intersection is None:
         return 0
     return intersection / union_area(r1, r2)
