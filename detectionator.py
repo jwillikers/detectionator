@@ -130,14 +130,15 @@ def combine_detections(d1, d2):
         return d2
     if d2 is None:
         return d1
-    return max(d1[0], d2[0]), combine_rectangles(d1[1], d2[1]), d1[2]
+    most_confident_class = d1[2] if d1[0] >= d2[0] else d2[2]
+    return max(d1[0], d2[0]), combine_rectangles(d1[1], d2[1]), most_confident_class
 
 
 def detections_are_duplicates(d1, d2, min_overlap: float):
-    return d1[2] == d2[2] and rectangles_are_duplicates(d1[1], d2[1], min_overlap)
+    return rectangles_are_duplicates(d1[1], d2[1], min_overlap)
 
 
-# Remove detections of the same class at overlapping coordinates.
+# Combine detections at overlapping coordinates.
 # The min_overlap parameter is used to determine the minimum percentage of overlapping rectangles that is considered a duplicate.
 # Duplicate detections are combined to a single detection.
 # The coordinates for the combined bounding box are the minimum coordinates that encapsulate all of the individual bounding boxes.
@@ -149,7 +150,7 @@ def combine_duplicate_detections(detections, min_overlap: float):
         return detections
 
     deduplicated_detections = []
-    sorted_detections = sorted(detections, key=lambda y: (y[2], y[1][0], y[1][1], y[1][2], y[1][3]))
+    sorted_detections = sorted(detections, key=lambda y: (y[1][0], y[1][1], y[1][2], y[1][3]))
     i = 0
     while i < len(sorted_detections) - 1:
         current = sorted_detections[i]
