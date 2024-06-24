@@ -90,9 +90,6 @@ def yolo_class_filter(classdata):
 
 # Determine if two rectangles are duplicates according to the given percentage of overlap.
 def rectangles_are_duplicates(r1, r2, min_overlap: float):
-    tmp = percentage_intersecting(r1, r2)
-    logger.info(f"percentage_intersecting(r1, r2) = {tmp}")
-    logger.info(f"min_overlap = {min_overlap}")
     return percentage_intersecting(r1, r2) >= min_overlap
 
 
@@ -117,11 +114,8 @@ def rectangle_area(rectangle):
 
 def percentage_intersecting(r1, r2):
     intersection = intersection_area(r1, r2)
-    logger.info(f"intersection: {intersection}")
     if intersection is None:
         return 0
-    tmp = intersection / union_area(r1, r2)
-    logger.info(f"intersection %: {tmp}")
     return intersection / union_area(r1, r2)
 
 
@@ -164,11 +158,30 @@ def combine_duplicate_detections(detections, min_overlap: float):
         j = 0
         while i + j < len(sorted_detections) and detections_are_duplicates(current, sorted_detections[j], min_overlap):
             current = combine_detections(current, sorted_detections[j])
-            logger.info(f"combined detection: {current}")
             j += 1
         deduplicated_detections.append(current)
         i += j + 1
     return deduplicated_detections       
+
+
+# Combine rectangles that overlap each other.
+# The coordinates for the combined bounding box are the minimum coordinates that encapsulate all of the individual bounding boxes.
+def combine_intersecting_rectangles(rectangles):
+    if len(rectangles) <= 1:
+        return rectangles
+
+    combined_rectangles = []
+    sorted_rectangles = sorted(rectangles, key=lambda y: (y[0], y[1], y[2], y[3]))
+    i = 0
+    while i < len(sorted_rectangles) - 1:
+        current = sorted_rectangles[i]
+        j = 0
+        while i + j < len(sorted_rectangles) and intersection_area(current, sorted_rectangles[j]) > 0:
+            current = combine_rectangles(current, sorted_rectangles[j])
+            j += 1
+        combined_rectangles.append(current)
+        i += j + 1
+    return combined_rectangles       
 
 
 def inference_tensorflow(
@@ -538,7 +551,7 @@ async def detect_and_capture(
                     f"Possible detection: {detection_to_string(possible_detection)}"
                 )
 
-            bounding_boxes = [d[1] for d in reversed(possible_detections)]
+            bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(possible_detections)])
             scaled_bounding_boxes = [
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
@@ -577,7 +590,7 @@ async def detect_and_capture(
         for detection in reversed(detections):
             logger.info(f"Detection: {detection_to_string(detection)}")
 
-        bounding_boxes = [d[1] for d in reversed(detections)]
+        bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(detections)])
         scaled_bounding_boxes = [
             cast_int(
                 rectangle_coordinates_to_coordinate_width_height(
@@ -698,7 +711,7 @@ async def detect_and_record(
                     f"Possible detection: {detection_to_string(possible_detection)}"
                 )
 
-            bounding_boxes = [d[1] for d in reversed(possible_detections)]
+            bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(possible_detections)])
             scaled_bounding_boxes = [
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
@@ -736,7 +749,7 @@ async def detect_and_record(
         for detection in reversed(detections):
             logger.info(f"Detection: {detection_to_string(detection)}")
 
-        bounding_boxes = [d[1] for d in reversed(detections)]
+        bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(detections)])
         scaled_bounding_boxes = [
             cast_int(
                 rectangle_coordinates_to_coordinate_width_height(
@@ -855,7 +868,7 @@ async def detect_and_record(
                         f"Possible detection: {detection_to_string(possible_detection)}"
                     )
 
-                bounding_boxes = [d[1] for d in reversed(possible_detections)]
+                bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(possible_detections)])
                 scaled_bounding_boxes = [
                     cast_int(
                         rectangle_coordinates_to_coordinate_width_height(
@@ -896,7 +909,7 @@ async def detect_and_record(
 
             for detection in reversed(detections):
                 logger.info(f"Detection: {detection_to_string(detection)}")
-            bounding_boxes = [d[1] for d in reversed(detections)]
+            bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(detections)])
             scaled_bounding_boxes = [
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
