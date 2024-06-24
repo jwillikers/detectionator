@@ -4,8 +4,9 @@ import asyncio
 import bisect
 import datetime
 from dateutil import parser
-from functools import partial
+from functools import partial, reduce
 import logging
+import math
 from numbers import Real
 import os
 import pathlib
@@ -86,6 +87,80 @@ def read_label_file(file_path):
 def yolo_class_filter(classdata):
     return [c.argmax() for c in classdata]
 
+# Determine if two rectangles are duplicates according to the given percentage of overlap.
+def rectangles_are_duplicates(r1, r2, min_overlap: float):
+    return percentage_intersecting(r1, r2) >= min_overlap
+
+
+def intersection_area(r1, r2):
+    dx = min(r1[2], r2[2]) - max(r1[0], r2[0])
+    dy = min(r1[3], r2[3]) - max(r1[1], r2[1])
+    if dx >= 0 and dy >= 0:
+        return dx * dy
+    return None
+
+
+def union_area(r1, r2):
+    intersection = intersection_area(r1, r2)
+    if intersection is None:
+        return None
+    return rectangle_area(r1) + rectangle_area(r2) - intersection
+
+
+def rectangle_area(rectangle):
+    return (rectangle[2] - rectangle[0]) * (rectangle[3] - rectangle[1])
+
+
+def percentage_intersecting(r1, r2):
+    return intersection_area(r1, r2) / union_area(r1, r2)
+
+
+def combine_rectangles(r1, r2):
+    min_x = min(r1[0], r2[0])
+    min_y = min(r1[1], r2[1])
+    max_x = max(r1[2], r2[2])
+    max_y = max(r1[3], r2[3])
+    return min_x, min_y, max_x, max_y
+
+
+def combine_detections(d1, d2):
+    if d1 is None and d2 is None:
+        return None
+    if d1 is None:
+        return d2
+    if d2 is None:
+        return d1
+    return max(d1[0], d2[0]), combine_rectangles(d1[1], d2[1]), d1[2]
+
+
+def detections_are_duplicates(d1, d2, min_overlap: float):
+    return d1[2] == d2[2] and rectangles_are_duplicates(d1[1], d2[1], min_overlap)
+
+
+# Remove detections of the same class at overlapping coordinates.
+# The min_overlap parameter is used to determine the minimum percentage of overlapping rectangles that is considered a duplicate.
+# Duplicate detections are combined to a single detection.
+# The coordinates for the combined bounding box are the minimum coordinates that encapsulate all of the individual bounding boxes.
+def combine_duplicate_detections(detections, min_overlap: float):
+    if not detections:
+        return detections
+
+    if len(detections) == 1:
+        return detections
+
+    deduplicated_detections = []
+    sorted_detections = sorted(detections, key=lambda y: (y[2], y[1][0], y[1][1], y[1][2], y[1][3]))
+    i = 0
+    while i < len(sorted_detections) - 1:
+        current = sorted_detections[i]
+        j = 0
+        while i + j < len(sorted_detections) and detections_are_duplicates(current, sorted_detections[j], min_overlap):
+            current = combine_detections(current, sorted_detections[j])
+            j += 1
+        deduplicated_detections.append(current)
+        i += j + 1
+    return deduplicated_detections       
+
 
 def inference_tensorflow(
     image, interpreter, labels, match_labels: list, threshold: float, is_yolo: bool
@@ -159,6 +234,7 @@ def inference_tensorflow(
             if labels:
                 detection = (*detection, labels[class_id])
             detections.append(detection)
+    combine_duplicate_detections(detections, 0.8)
     return detections
 
 
