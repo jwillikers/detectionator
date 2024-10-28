@@ -193,7 +193,7 @@ def inference_hailo(
         size: tuple[int, int],
         threshold: float,
 ):
-    output = hailo.run(image)
+    output = hailo.run(image)[0]
 
     height, width, _ = hailo.get_input_shape()
 
