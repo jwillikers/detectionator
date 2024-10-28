@@ -69,7 +69,7 @@ install-system: init
     sudo cp config/hailo-config.toml /usr/local/etc/detectionator/config.toml
     sudo chown --recursive root:root /usr/local/etc/detectionator
     sudo mkdir --parents /usr/local/share/detectionator/
-    sudo cp --recursive models /usr/local/share/detectionator/models
+    sudo cp models/* /usr/local/share/detectionator/models
     sudo chown --recursive root:root /usr/local/share/detectionator
     sudo mkdir /var/log/detectionator
     sudo chown detectionator:detectionator /var/log/detectionator
