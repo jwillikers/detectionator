@@ -4,9 +4,8 @@ import asyncio
 import bisect
 import datetime
 from dateutil import parser
-from functools import partial, reduce
+from functools import partial
 import logging
-import math
 from numbers import Real
 import os
 import pathlib
@@ -190,11 +189,9 @@ def inference_hailo(
         hailo,
         labels: list,
         match_labels: list,
-        size: tuple[int, int],
         threshold: float,
 ):
     output = hailo.run(image)[0]
-
     height, width, _ = hailo.get_input_shape()
 
     # detection:
@@ -303,10 +300,9 @@ def inference(
     match_labels: list,
     threshold: float,
     is_yolo: bool,
-    size: tuple[int, int],
 ):
     if isinstance(interpreter, Hailo):
-        return inference_hailo(image, interpreter, labels, match_labels, size, threshold)
+        return inference_hailo(image, interpreter, labels, match_labels, threshold)
     return inference_tensorflow(image, interpreter, labels, match_labels, threshold, is_yolo)
 
 
@@ -579,7 +575,7 @@ async def detect_and_capture(
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
             inference(
-                image, interpreter, labels, match, focal_detection_threshold, is_yolo, main_resolution
+                image, interpreter, labels, match, focal_detection_threshold, is_yolo
             )
         )
         if len(detections) == 0:
@@ -744,7 +740,7 @@ async def detect_and_record(
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
             inference(
-                image, interpreter, labels, match, focal_detection_threshold, is_yolo, main_resolution
+                image, interpreter, labels, match, focal_detection_threshold, is_yolo
             )
         )
         if len(detections) == 0:
@@ -894,7 +890,6 @@ async def detect_and_record(
                     match,
                     focal_detection_threshold,
                     is_yolo,
-                    main_resolution,
                 )
             )
             if len(detections) == 0:
