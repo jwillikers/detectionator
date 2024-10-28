@@ -66,7 +66,7 @@ install-system: init
     sudo cp xmp_utils.py /usr/local/bin/xmp_utils.py
     sudo chown root:root /usr/local/bin/xmp_utils.py
     sudo mkdir --parents /usr/local/etc/detectionator/
-    sudo cp config/fast-and-close-config.toml /usr/local/etc/detectionator/config.toml
+    sudo cp config/hailo-config.toml /usr/local/etc/detectionator/config.toml
     sudo chown --recursive root:root /usr/local/etc/detectionator
     sudo mkdir --parents /usr/local/share/detectionator/
     sudo cp --recursive models /usr/local/share/detectionator/models
@@ -80,7 +80,7 @@ install-user: init
     [ -d venv ] || python -m venv --system-site-packages venv
     venv/bin/python -m pip install --requirement requirements.txt
     mkdir --parents {{ config_directory() }}/detectionator
-    cp config/fast-and-close-config.toml {{ config_directory() }}/detectionator/config.toml
+    cp config/hailo.toml {{ config_directory() }}/detectionator/config.toml
     mkdir --parents {{ config_directory() }}/systemd/user
     ln --force --relative --symbolic etc/systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload
