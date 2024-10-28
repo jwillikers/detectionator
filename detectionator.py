@@ -20,6 +20,7 @@ import gps.aiogps
 from libcamera import controls
 import numpy as np
 from picamera2 import MappedArray, Picamera2
+from picamera2.devices import Hailo
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import FfmpegOutput
 import piexif
@@ -161,7 +162,7 @@ def combine_duplicate_detections(detections, min_overlap: float):
             j += 1
         deduplicated_detections.append(current)
         i += j + 1
-    return deduplicated_detections       
+    return deduplicated_detections
 
 
 # Combine rectangles that overlap each other.
@@ -181,11 +182,45 @@ def combine_intersecting_rectangles(rectangles):
             j += 1
         combined_rectangles.append(current)
         i += j + 1
-    return combined_rectangles       
+    return combined_rectangles
+
+
+def inference_hailo(
+        image,
+        hailo,
+        labels: dict,
+        match_labels: list,
+        size: tuple[int, int],
+        threshold: float,
+):
+    output = hailo.run(image)
+
+    # detection:
+    #   score
+    #   rectangle
+    #   label
+    results = list()
+    for class_id, detections in enumerate(output):
+        if match_labels and labels[class_id] not in match_labels:
+            continue
+        for detection in detections:
+            score = detection[4]
+            if score >= threshold:
+                bottom, left, top, right = detection[:4]
+                x_min = int(left * size[0])
+                y_min = int(bottom * size[1])
+                x_max = int(right * size[0])
+                y_max = int(top * size[1])
+                box = [x_min, y_min, x_max, y_max]
+                result = (score, box)
+                if labels:
+                    detection = (*detection, labels[class_id])
+                results.append(result)
+    return results
 
 
 def inference_tensorflow(
-    image, interpreter, labels, match_labels: list, threshold: float, is_yolo: bool
+    image, interpreter, labels: dict, match_labels: list, threshold: float, is_yolo: bool
 ):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
@@ -257,6 +292,20 @@ def inference_tensorflow(
                 detection = (*detection, labels[class_id])
             detections.append(detection)
     return combine_duplicate_detections(detections, 0.8)
+
+
+def inference(
+    image,
+    interpreter,
+    labels: dict,
+    match_labels: list,
+    threshold: float,
+    is_yolo: bool,
+    size: tuple[int, int],
+):
+    if isinstance(interpreter, Hailo):
+        return inference_hailo(image, interpreter, labels, match_labels, size, threshold)
+    return inference_tensorflow(image, interpreter, labels, match_labels, threshold, is_yolo)
 
 
 # Convert a rectangle defined by two coordinates to a string representation.
@@ -506,8 +555,8 @@ def split_detections_based_on_confidence(
 async def detect_and_capture(
     picam2,
     interpreter,
-    labels,
-    match,
+    labels: dict,
+    match: list,
     gps_exif_metadata: dict,
     scaler_crop_maximum_ratio: tuple[Real, Real],
     scaler_crop_maximum_offset: tuple[Real, Real],
@@ -527,8 +576,8 @@ async def detect_and_capture(
     while True:
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
-            inference_tensorflow(
-                image, interpreter, labels, match, focal_detection_threshold, is_yolo
+            inference(
+                image, interpreter, labels, match, focal_detection_threshold, is_yolo, main_resolution
             )
         )
         if len(detections) == 0:
@@ -692,8 +741,8 @@ async def detect_and_record(
     while True:
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
-            inference_tensorflow(
-                image, interpreter, labels, match, focal_detection_threshold, is_yolo
+            inference(
+                image, interpreter, labels, match, focal_detection_threshold, is_yolo, main_resolution
             )
         )
         if len(detections) == 0:
@@ -836,13 +885,14 @@ async def detect_and_record(
         ) or consecutive_failed_detections < consecutive_failed_detections_to_stop:
             image = picam2.capture_array("lores")
             detections = sort_detections_by_confidence(
-                inference_tensorflow(
+                inference(
                     image,
                     interpreter,
                     labels,
                     match,
                     focal_detection_threshold,
                     is_yolo,
+                    main_resolution,
                 )
             )
             if len(detections) == 0:
@@ -1055,6 +1105,11 @@ async def main():
         type=float,
     )
     parser.add_argument(
+        "--hailo",
+        help="Use the Raspberry Pi AI accelerator.",
+        action=argparse.BooleanOptionalAction,
+    )
+    parser.add_argument(
         "--hdr-mode",
         choices=["off", "single", "night"],
         help="The HDR mode.",
@@ -1134,7 +1189,7 @@ async def main():
     logging.getLogger("picamera2").setLevel(numeric_log_level)
 
     if args.burst < 1:
-        logger.warn(
+        logger.warning(
             f"The burst value must be at least 1. Ignoring the provided burst value of '{args.burst}'."
         )
         args.burst = 1
@@ -1254,20 +1309,32 @@ async def main():
 
     frame = int(time.time())
 
-    with Picamera2() as picam2:
-        if args.low_resolution_width:
-            low_resolution_width = args.low_resolution_width
-        else:
-            low_resolution_width = (
-                picam2.sensor_resolution[0] // default_low_resolution_scale
-            )
+    interpreter = None
+    if args.hailo:
+        interpreter = tflite.Interpreter(
+            model_path=str(args.model), num_threads=args.threads
+        )
+        interpreter.allocate_tensors()
+    else:
+        interpreter = Hailo(args.model)
 
-        if args.low_resolution_height:
-            low_resolution_height = args.low_resolution_height
+    with Picamera2() as picam2:
+        if args.hailo:
+            low_resolution_height, low_resolution_width, _ = interpreter.get_input_shape()
         else:
-            low_resolution_height = (
-                picam2.sensor_resolution[1] // default_low_resolution_scale
-            )
+            if args.low_resolution_width:
+                low_resolution_width = args.low_resolution_width
+            else:
+                low_resolution_width = (
+                    picam2.sensor_resolution[0] // default_low_resolution_scale
+                )
+
+            if args.low_resolution_height:
+                low_resolution_height = args.low_resolution_height
+            else:
+                low_resolution_height = (
+                    picam2.sensor_resolution[1] // default_low_resolution_scale
+                )
 
         low_resolution = (low_resolution_width, low_resolution_height)
 
@@ -1406,11 +1473,6 @@ async def main():
             )
         time.sleep(1)
         picam2.start()
-
-        interpreter = tflite.Interpreter(
-            model_path=str(args.model), num_threads=args.threads
-        )
-        interpreter.allocate_tensors()
 
         gps_exif_metadata = {}
         gps_mp4_metadata = {}

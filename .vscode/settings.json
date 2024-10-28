@@ -26,6 +26,7 @@
         "gpsdctl",
         "grayscale",
         "gstreamer",
+        "hailo",
         "hynix",
         "Hyperpixel",
         "ifdef",

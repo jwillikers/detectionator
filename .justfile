@@ -43,7 +43,7 @@ init-dev: && sync
     set -euxo pipefail
     distro=$(awk -F= '$1=="ID" { print $2 ;}' /etc/os-release)
     if [ "$distro" = "debian" ]; then
-        sudo apt-get --yes install ffmpeg libatlas-base-dev python3-dev python3-picamera2 python3-venv
+        sudo apt-get --yes install ffmpeg hailo-all libatlas-base-dev python3-dev python3-picamera2 python3-venv
     fi
     [ -d venv ] || python -m venv --system-site-packages venv
     venv/bin/python -m pip install --requirement requirements-dev.txt
