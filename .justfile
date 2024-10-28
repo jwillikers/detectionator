@@ -43,7 +43,7 @@ init-dev: && sync
     set -euxo pipefail
     distro=$(awk -F= '$1=="ID" { print $2 ;}' /etc/os-release)
     if [ "$distro" = "debian" ]; then
-        sudo apt-get --yes install ffmpeg libatlas-base-dev python3-dev python3-picamera2 python3-venv
+        sudo apt-get --yes install ffmpeg hailo-all libatlas-base-dev python3-dev python3-picamera2 python3-venv
     fi
     [ -d venv ] || python -m venv --system-site-packages venv
     venv/bin/python -m pip install --requirement requirements-dev.txt
@@ -66,11 +66,13 @@ install-system: init
     sudo cp xmp_utils.py /usr/local/bin/xmp_utils.py
     sudo chown root:root /usr/local/bin/xmp_utils.py
     sudo mkdir --parents /usr/local/etc/detectionator/
-    sudo cp config/fast-and-close-config.toml /usr/local/etc/detectionator/config.toml
+    sudo cp config/hailo-config.toml /usr/local/etc/detectionator/config.toml
     sudo chown --recursive root:root /usr/local/etc/detectionator
     sudo mkdir --parents /usr/local/share/detectionator/
-    sudo cp --recursive models /usr/local/share/detectionator/models
+    sudo cp models/* /usr/local/share/detectionator/models
     sudo chown --recursive root:root /usr/local/share/detectionator
+    sudo mkdir /var/log/detectionator
+    sudo chown detectionator:detectionator /var/log/detectionator
     sudo -H -u detectionator bash -c '[ -d /home/detectionator/venv ] || python -m venv --system-site-packages /home/detectionator/venv'
     sudo -H -u detectionator bash -c '/home/detectionator/venv/bin/python -m pip install --requirement requirements.txt'
     sudo systemctl enable detectionator.service
@@ -80,7 +82,7 @@ install-user: init
     [ -d venv ] || python -m venv --system-site-packages venv
     venv/bin/python -m pip install --requirement requirements.txt
     mkdir --parents {{ config_directory() }}/detectionator
-    cp config/fast-and-close-config.toml {{ config_directory() }}/detectionator/config.toml
+    cp config/hailo.toml {{ config_directory() }}/detectionator/config.toml
     mkdir --parents {{ config_directory() }}/systemd/user
     ln --force --relative --symbolic etc/systemd/user/* {{ config_directory() }}/systemd/user/
     systemctl --user daemon-reload

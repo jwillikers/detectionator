@@ -4,9 +4,8 @@ import asyncio
 import bisect
 import datetime
 from dateutil import parser
-from functools import partial, reduce
+from functools import partial
 import logging
-import math
 from numbers import Real
 import os
 import pathlib
@@ -20,6 +19,7 @@ import gps.aiogps
 from libcamera import controls
 import numpy as np
 from picamera2 import MappedArray, Picamera2
+from picamera2.devices import Hailo
 from picamera2.encoders import H264Encoder, Quality
 from picamera2.outputs import FfmpegOutput
 import piexif
@@ -151,17 +151,21 @@ def combine_duplicate_detections(detections, min_overlap: float):
         return detections
 
     deduplicated_detections = []
-    sorted_detections = sorted(detections, key=lambda y: (y[1][0], y[1][1], y[1][2], y[1][3]))
+    sorted_detections = sorted(
+        detections, key=lambda y: (y[1][0], y[1][1], y[1][2], y[1][3])
+    )
     i = 0
     while i < len(sorted_detections) - 1:
         current = sorted_detections[i]
         j = 0
-        while i + j < len(sorted_detections) and detections_are_duplicates(current, sorted_detections[j], min_overlap):
+        while i + j < len(sorted_detections) and detections_are_duplicates(
+            current, sorted_detections[j], min_overlap
+        ):
             current = combine_detections(current, sorted_detections[j])
             j += 1
         deduplicated_detections.append(current)
         i += j + 1
-    return deduplicated_detections       
+    return deduplicated_detections
 
 
 # Combine rectangles that overlap each other.
@@ -176,16 +180,58 @@ def combine_intersecting_rectangles(rectangles):
     while i < len(sorted_rectangles) - 1:
         current = sorted_rectangles[i]
         j = 0
-        while i + j < len(sorted_rectangles) and intersection_area(current, sorted_rectangles[j]) > 0:
+        while (
+            i + j < len(sorted_rectangles)
+            and intersection_area(current, sorted_rectangles[j]) > 0
+        ):
             current = combine_rectangles(current, sorted_rectangles[j])
             j += 1
         combined_rectangles.append(current)
         i += j + 1
-    return combined_rectangles       
+    return combined_rectangles
+
+
+def inference_hailo(
+    image,
+    hailo,
+    labels: list,
+    match_labels: list,
+    threshold: float,
+):
+    output = hailo.run(image)[0]
+    height, width, _ = hailo.get_input_shape()
+
+    # detection:
+    #   score
+    #   rectangle
+    #   label
+    results = list()
+    for class_id, detections in enumerate(output):
+        if match_labels and labels[class_id] not in match_labels:
+            continue
+        for detection in detections:
+            score = detection[4]
+            if score >= threshold:
+                bottom, left, top, right = detection[:4]
+                x_min = int(left * width)
+                y_min = int(bottom * height)
+                x_max = int(right * width)
+                y_max = int(top * height)
+                box = [x_min, y_min, x_max, y_max]
+                result = (score, box)
+                if labels:
+                    result = (*result, labels[class_id])
+                results.append(result)
+    return results
 
 
 def inference_tensorflow(
-    image, interpreter, labels, match_labels: list, threshold: float, is_yolo: bool
+    image,
+    interpreter,
+    labels: dict,
+    match_labels: list,
+    threshold: float,
+    is_yolo: bool,
 ):
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
@@ -214,9 +260,7 @@ def inference_tensorflow(
     if is_yolo:
         output_data = interpreter.get_tensor(output_details[0]["index"])[0]
         boxes = np.squeeze(output_data[..., :4])
-        detected_scores = np.squeeze(
-            output_data[..., 4:5]
-        )  # confidences  [25200, 1]
+        detected_scores = np.squeeze(output_data[..., 4:5])  # confidences  [25200, 1]
         detected_classes = yolo_class_filter(output_data[..., 5:])
         x, y, w, h = boxes[..., 0], boxes[..., 1], boxes[..., 2], boxes[..., 3]  # xywh
         # detected_boxes = [y - h / 2, x - w / 2, y + h / 2, x + w / 2]  # xywh to yxyx
@@ -257,6 +301,21 @@ def inference_tensorflow(
                 detection = (*detection, labels[class_id])
             detections.append(detection)
     return combine_duplicate_detections(detections, 0.8)
+
+
+def inference(
+    image,
+    interpreter,
+    labels,
+    match_labels: list,
+    threshold: float,
+    is_yolo: bool,
+):
+    if isinstance(interpreter, Hailo):
+        return inference_hailo(image, interpreter, labels, match_labels, threshold)
+    return inference_tensorflow(
+        image, interpreter, labels, match_labels, threshold, is_yolo
+    )
 
 
 # Convert a rectangle defined by two coordinates to a string representation.
@@ -506,8 +565,8 @@ def split_detections_based_on_confidence(
 async def detect_and_capture(
     picam2,
     interpreter,
-    labels,
-    match,
+    labels: dict,
+    match: list,
     gps_exif_metadata: dict,
     scaler_crop_maximum_ratio: tuple[Real, Real],
     scaler_crop_maximum_offset: tuple[Real, Real],
@@ -527,7 +586,7 @@ async def detect_and_capture(
     while True:
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
-            inference_tensorflow(
+            inference(
                 image, interpreter, labels, match, focal_detection_threshold, is_yolo
             )
         )
@@ -551,7 +610,9 @@ async def detect_and_capture(
                     f"Possible detection: {detection_to_string(possible_detection)}"
                 )
 
-            bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(possible_detections)])
+            bounding_boxes = combine_intersecting_rectangles(
+                [d[1] for d in reversed(possible_detections)]
+            )
             scaled_bounding_boxes = [
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
@@ -590,7 +651,9 @@ async def detect_and_capture(
         for detection in reversed(detections):
             logger.info(f"Detection: {detection_to_string(detection)}")
 
-        bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(detections)])
+        bounding_boxes = combine_intersecting_rectangles(
+            [d[1] for d in reversed(detections)]
+        )
         scaled_bounding_boxes = [
             cast_int(
                 rectangle_coordinates_to_coordinate_width_height(
@@ -692,7 +755,7 @@ async def detect_and_record(
     while True:
         image = picam2.capture_array("lores")
         detections = sort_detections_by_confidence(
-            inference_tensorflow(
+            inference(
                 image, interpreter, labels, match, focal_detection_threshold, is_yolo
             )
         )
@@ -711,7 +774,9 @@ async def detect_and_record(
                     f"Possible detection: {detection_to_string(possible_detection)}"
                 )
 
-            bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(possible_detections)])
+            bounding_boxes = combine_intersecting_rectangles(
+                [d[1] for d in reversed(possible_detections)]
+            )
             scaled_bounding_boxes = [
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
@@ -749,7 +814,9 @@ async def detect_and_record(
         for detection in reversed(detections):
             logger.info(f"Detection: {detection_to_string(detection)}")
 
-        bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(detections)])
+        bounding_boxes = combine_intersecting_rectangles(
+            [d[1] for d in reversed(detections)]
+        )
         scaled_bounding_boxes = [
             cast_int(
                 rectangle_coordinates_to_coordinate_width_height(
@@ -836,7 +903,7 @@ async def detect_and_record(
         ) or consecutive_failed_detections < consecutive_failed_detections_to_stop:
             image = picam2.capture_array("lores")
             detections = sort_detections_by_confidence(
-                inference_tensorflow(
+                inference(
                     image,
                     interpreter,
                     labels,
@@ -868,7 +935,9 @@ async def detect_and_record(
                         f"Possible detection: {detection_to_string(possible_detection)}"
                     )
 
-                bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(possible_detections)])
+                bounding_boxes = combine_intersecting_rectangles(
+                    [d[1] for d in reversed(possible_detections)]
+                )
                 scaled_bounding_boxes = [
                     cast_int(
                         rectangle_coordinates_to_coordinate_width_height(
@@ -909,7 +978,9 @@ async def detect_and_record(
 
             for detection in reversed(detections):
                 logger.info(f"Detection: {detection_to_string(detection)}")
-            bounding_boxes = combine_intersecting_rectangles([d[1] for d in reversed(detections)])
+            bounding_boxes = combine_intersecting_rectangles(
+                [d[1] for d in reversed(detections)]
+            )
             scaled_bounding_boxes = [
                 cast_int(
                     rectangle_coordinates_to_coordinate_width_height(
@@ -1055,6 +1126,11 @@ async def main():
         type=float,
     )
     parser.add_argument(
+        "--hailo",
+        help="Use the Raspberry Pi AI accelerator.",
+        action=argparse.BooleanOptionalAction,
+    )
+    parser.add_argument(
         "--hdr-mode",
         choices=["off", "single", "night"],
         help="The HDR mode.",
@@ -1134,7 +1210,7 @@ async def main():
     logging.getLogger("picamera2").setLevel(numeric_log_level)
 
     if args.burst < 1:
-        logger.warn(
+        logger.warning(
             f"The burst value must be at least 1. Ignoring the provided burst value of '{args.burst}'."
         )
         args.burst = 1
@@ -1162,7 +1238,12 @@ async def main():
 
     labels = None
     if label_file:
-        labels = read_label_file(label_file)
+        if args.hailo:
+            with open(label_file, "r", encoding="utf-8") as f:
+                # class names
+                labels = f.read().splitlines()
+        else:
+            labels = read_label_file(label_file)
 
     match = []
     if args.match:
@@ -1170,11 +1251,18 @@ async def main():
 
     if labels is not None:
         for m in match:
-            if m not in labels.values():
-                logger.error(
-                    f"The match '{m}' does not appear in the labels file {label_file}"
-                )
-                sys.exit(1)
+            if isinstance(labels, dict):
+                if m not in labels.values():
+                    logger.error(
+                        f"The match '{m}' does not appear in the labels file {label_file}"
+                    )
+                    sys.exit(1)
+            elif isinstance(labels, list):
+                if m not in labels:
+                    logger.error(
+                        f"The match '{m}' does not appear in the labels file {label_file}"
+                    )
+                    sys.exit(1)
 
     logger.info(f"Will take photographs of: {match}")
 
@@ -1254,20 +1342,36 @@ async def main():
 
     frame = int(time.time())
 
-    with Picamera2() as picam2:
-        if args.low_resolution_width:
-            low_resolution_width = args.low_resolution_width
-        else:
-            low_resolution_width = (
-                picam2.sensor_resolution[0] // default_low_resolution_scale
-            )
+    interpreter = None
+    if args.hailo:
+        interpreter = Hailo(args.model)
+    else:
+        interpreter = tflite.Interpreter(
+            model_path=str(args.model), num_threads=args.threads
+        )
+        interpreter.allocate_tensors()
 
-        if args.low_resolution_height:
-            low_resolution_height = args.low_resolution_height
-        else:
-            low_resolution_height = (
-                picam2.sensor_resolution[1] // default_low_resolution_scale
+    with Picamera2() as picam2:
+        low_resolution_height: int = 0
+        low_resolution_width: int = 0
+        if args.hailo:
+            low_resolution_height, low_resolution_width, _ = (
+                interpreter.get_input_shape()
             )
+        else:
+            if args.low_resolution_width:
+                low_resolution_width = args.low_resolution_width
+            else:
+                low_resolution_width = (
+                    picam2.sensor_resolution[0] // default_low_resolution_scale
+                )
+
+            if args.low_resolution_height:
+                low_resolution_height = args.low_resolution_height
+            else:
+                low_resolution_height = (
+                    picam2.sensor_resolution[1] // default_low_resolution_scale
+                )
 
         low_resolution = (low_resolution_width, low_resolution_height)
 
@@ -1365,8 +1469,8 @@ async def main():
             picam2.align_configuration(config)
         low_resolution = config["lores"]["size"]
         main_resolution = config["main"]["size"]
-        logger.info(f"Aligned low resolution: {low_resolution}")
-        logger.info(f"Aligned main resolution: {main_resolution}")
+        logger.info(f"Final low resolution: {low_resolution}")
+        logger.info(f"Final main resolution: {main_resolution}")
         has_autofocus = "AfMode" in picam2.camera_controls
         picam2.configure(config)
         # Enable autofocus.
@@ -1406,11 +1510,6 @@ async def main():
             )
         time.sleep(1)
         picam2.start()
-
-        interpreter = tflite.Interpreter(
-            model_path=str(args.model), num_threads=args.threads
-        )
-        interpreter.allocate_tensors()
 
         gps_exif_metadata = {}
         gps_mp4_metadata = {}

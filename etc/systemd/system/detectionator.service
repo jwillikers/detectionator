@@ -5,6 +5,7 @@ After=multi-user.target
 [Service]
 Type=notify
 NotifyAccess=main
+Environment=HAILORT_LOGGER_PATH=/var/log/detectionator
 Environment=LIBCAMERA_LOG_LEVELS=INFO
 Environment=PYTHONPATH=/usr/local/lib/python3/dist-packages:/usr/lib/python3/dist-packages
 Environment=PYTHONUNBUFFERED=true
@@ -12,6 +13,7 @@ ExecStartPre=/bin/sleep 5
 ExecStart=/home/detectionator/venv/bin/python /usr/local/bin/detectionator.py --systemd-notify
 Restart=on-failure
 RestartSec=10
+TimeoutStartSec=5min
 KillMode=process
 
 # Steal all of the CPU time.
