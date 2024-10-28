@@ -5,6 +5,7 @@ After=multi-user.target
 [Service]
 Type=notify
 NotifyAccess=main
+Environment=HAILORT_LOGGER_PATH=/var/log/detectionator
 Environment=LIBCAMERA_LOG_LEVELS=INFO
 Environment=PYTHONPATH=/usr/local/lib/python3/dist-packages:/usr/lib/python3/dist-packages
 Environment=PYTHONUNBUFFERED=true
