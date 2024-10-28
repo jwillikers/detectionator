@@ -41,6 +41,7 @@ The project is largely based off of the tensorflow example in the {picamera2} pr
 
 The Detectionator is based off of the Raspberry Pi 5 and the Camera Module 3.
 It incorporates a GPS HAT for the Raspberry Pi to obtain the geolocation data to embed in the photographs.
+The Raspberry Pi AI Kit is recommended, as it reduces the CPU usage dramatically on the Pi.
 
 [NOTE]
 ====
@@ -66,6 +67,7 @@ The https://www.samsung.com/us/computing/memory-storage/memory-cards/pro-ultimat
 This is 4 17mm M2.5 Hex socket-socket standoffs and 8 6mm M2.5 screws.
 * https://shop.pimoroni.com/products/booster-header?variant=47414520906[Booster Header]
 This header has a standard 8.5mm height with 5mm tall pins.
+* https://www.raspberrypi.com/products/ai-kit/[Raspberry Pi AI Kit] This is component is optional.
 
 [TIP]
 ====
