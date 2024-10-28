@@ -1311,12 +1311,12 @@ async def main():
 
     interpreter = None
     if args.hailo:
+        interpreter = Hailo(args.model)
+    else:
         interpreter = tflite.Interpreter(
             model_path=str(args.model), num_threads=args.threads
         )
         interpreter.allocate_tensors()
-    else:
-        interpreter = Hailo(args.model)
 
     with Picamera2() as picam2:
         if args.hailo:
