@@ -188,12 +188,14 @@ def combine_intersecting_rectangles(rectangles):
 def inference_hailo(
         image,
         hailo,
-        labels: dict,
+        labels: list,
         match_labels: list,
         size: tuple[int, int],
         threshold: float,
 ):
     output = hailo.run(image)
+
+    height, width, _ = hailo.get_input_shape()
 
     # detection:
     #   score
@@ -207,10 +209,10 @@ def inference_hailo(
             score = detection[4]
             if score >= threshold:
                 bottom, left, top, right = detection[:4]
-                x_min = int(left * size[0])
-                y_min = int(bottom * size[1])
-                x_max = int(right * size[0])
-                y_max = int(top * size[1])
+                x_min = int(left * width)
+                y_min = int(bottom * height)
+                x_max = int(right * width)
+                y_max = int(top * height)
                 box = [x_min, y_min, x_max, y_max]
                 result = (score, box)
                 if labels:
@@ -297,7 +299,7 @@ def inference_tensorflow(
 def inference(
     image,
     interpreter,
-    labels: dict,
+    labels,
     match_labels: list,
     threshold: float,
     is_yolo: bool,
@@ -1217,7 +1219,12 @@ async def main():
 
     labels = None
     if label_file:
-        labels = read_label_file(label_file)
+        if args.hailo:
+            with open(label_file, 'r', encoding="utf-8") as f:
+                # class names
+                labels = f.read().splitlines()
+        else:
+            labels = read_label_file(label_file)
 
     match = []
     if args.match:
@@ -1225,11 +1232,18 @@ async def main():
 
     if labels is not None:
         for m in match:
-            if m not in labels.values():
-                logger.error(
-                    f"The match '{m}' does not appear in the labels file {label_file}"
-                )
-                sys.exit(1)
+            if isinstance(labels, dict):
+                if m not in labels.values():
+                    logger.error(
+                        f"The match '{m}' does not appear in the labels file {label_file}"
+                    )
+                    sys.exit(1)
+            elif isinstance(labels, list):
+                if m not in labels:
+                    logger.error(
+                        f"The match '{m}' does not appear in the labels file {label_file}"
+                    )
+                    sys.exit(1)
 
     logger.info(f"Will take photographs of: {match}")
 
@@ -1319,6 +1333,8 @@ async def main():
         interpreter.allocate_tensors()
 
     with Picamera2() as picam2:
+        low_resolution_height: int = 0
+        low_resolution_width: int = 0
         if args.hailo:
             low_resolution_height, low_resolution_width, _ = interpreter.get_input_shape()
         else:
@@ -1432,8 +1448,8 @@ async def main():
             picam2.align_configuration(config)
         low_resolution = config["lores"]["size"]
         main_resolution = config["main"]["size"]
-        logger.info(f"Aligned low resolution: {low_resolution}")
-        logger.info(f"Aligned main resolution: {main_resolution}")
+        logger.info(f"Final low resolution: {low_resolution}")
+        logger.info(f"Final main resolution: {main_resolution}")
         has_autofocus = "AfMode" in picam2.camera_controls
         picam2.configure(config)
         # Enable autofocus.

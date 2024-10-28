@@ -7,6 +7,9 @@
 # Re-running the detection algorithm before taking another photograph may lead to a considerable delay before another picture.
 burst = 1
 
+# Use the exact ratio for the Hailo chip.
+align_resolutions = false
+
 # Focus the lens on the closest part of the range.
 # todo Test how well the Macro range works.
 # autofocus-range = "macro"
@@ -33,7 +36,7 @@ gap = 0
 hailo = true
 
 # Below are standard options.
-label = "/usr/local/share/detectionator/models/coco_labels.txt"
+label = "/usr/local/share/detectionator/models/coco_labels_hailo.txt"
 log-level = "info"
 match = ["bird", "bear", "cat", "cow", "dog", "elephant", "giraffe", "horse", "sheep", "zebra"]
 model = "/usr/share/hailo-models/yolov8s_h8l.hef"
