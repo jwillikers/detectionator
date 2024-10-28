@@ -216,7 +216,7 @@ def inference_hailo(
                 box = [x_min, y_min, x_max, y_max]
                 result = (score, box)
                 if labels:
-                    detection = (*detection, labels[class_id])
+                    result = (*result, labels[class_id])
                 results.append(result)
     return results
 
