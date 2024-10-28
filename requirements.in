@@ -1,6 +1,6 @@
 cachetools
 ConfigArgParse
-numpy
+numpy<2
 opencv-python
 piexif
 pillow
