@@ -32,9 +32,11 @@ jobs:
           python-version: "3.11"
       - uses: chartboost/ruff-action@v1
         with:
+          version: 0.7.1
           args: format
       - uses: chartboost/ruff-action@v1
         with:
+          version: 0.7.1
           args: check --fix
       - uses: reviewdog/action-suggester@v1
         with:
